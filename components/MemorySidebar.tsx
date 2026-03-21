@@ -40,6 +40,9 @@ export default function MemorySidebar({ userId }: MemorySidebarProps) {
     const fetchMemories = useCallback(async () => {
         try {
             const res = await fetch(`/api/memory?userId=${encodeURIComponent(userId)}`);
+            if (!res.ok) {
+                throw new Error(`API returned ${res.status}`);
+            }
             const data = await res.json();
             const fetched: Memory[] = data.memories ?? [];
 
@@ -56,6 +59,7 @@ export default function MemorySidebar({ userId }: MemorySidebarProps) {
             setMemories(fetched);
 
             if (incoming.size > 0) {
+                console.log(`📝 ${incoming.size} new memory(ies) detected`);
                 setNewIds((prev) => new Set([...prev, ...incoming]));
 
                 // Scroll to top on new memories
@@ -72,6 +76,7 @@ export default function MemorySidebar({ userId }: MemorySidebarProps) {
             }
         } catch (error) {
             console.error("Failed to fetch memories:", error);
+            // Continue to try again on next poll
         } finally {
             setIsLoading(false);
         }
@@ -91,13 +96,32 @@ export default function MemorySidebar({ userId }: MemorySidebarProps) {
     return (
         <div
             ref={containerRef}
-            className="bg-gray-900 h-full overflow-y-auto p-4 flex flex-col gap-3"
+            className="bg-gradient-to-b from-slate-900/80 to-purple-900/80 backdrop-blur-md h-full overflow-y-auto p-4 flex flex-col gap-3"
         >
+            <style>{`
+                @keyframes slide-in {
+                    from { opacity: 0; transform: translateX(-10px); }
+                    to { opacity: 1; transform: translateX(0); }
+                }
+                @keyframes glow-pulse {
+                    0%, 100% { box-shadow: 0 0 10px rgba(34, 197, 94, 0.5), inset 0 0 10px rgba(34, 197, 94, 0.3); }
+                    50% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.8), inset 0 0 10px rgba(34, 197, 94, 0.5); }
+                }
+                .animate-slide-in {
+                    animation: slide-in 0.3s ease-out;
+                }
+                .animate-glow-pulse {
+                    animation: glow-pulse 0.6s ease-in-out;
+                }
+            `}</style>
+
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <span className="text-white font-semibold">🧠 Memory Bank</span>
+            <div className="flex items-center justify-between sticky top-0 bg-gradient-to-r from-slate-900/90 to-purple-900/90 backdrop-blur-md p-3 rounded-xl z-10">
+                <span className="text-white font-bold text-sm bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                    🧠 Memory Bank
+                </span>
                 {!isLoading && memories.length > 0 && (
-                    <span className="bg-indigo-600 text-white text-xs rounded-full px-2">
+                    <span className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs rounded-full px-2.5 py-1 font-semibold shadow-lg shadow-purple-500/30">
                         {memories.length}
                     </span>
                 )}
@@ -106,38 +130,45 @@ export default function MemorySidebar({ userId }: MemorySidebarProps) {
             {/* Loading skeletons */}
             {isLoading &&
                 Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="bg-gray-800 rounded-lg p-3 animate-pulse">
-                        <div className="h-3 bg-gray-700 rounded w-3/4 mb-2" />
-                        <div className="h-2 bg-gray-700 rounded w-1/2" />
+                    <div 
+                        key={i} 
+                        className="bg-gradient-to-r from-purple-900/30 to-indigo-900/30 rounded-lg p-3 animate-pulse border border-purple-500/20"
+                        style={{animationDelay: `${i * 100}ms`}}
+                    >
+                        <div className="h-3 bg-gradient-to-r from-purple-500/50 to-indigo-500/50 rounded w-3/4 mb-2" />
+                        <div className="h-2 bg-purple-500/30 rounded w-1/2" />
                     </div>
                 ))}
 
             {/* Empty state */}
             {!isLoading && memories.length === 0 && (
                 <div className="flex-1 flex items-center justify-center">
-                    <p className="text-gray-500 text-sm">
-                        Start chatting to build your memory...
+                    <p className="text-gray-400 text-sm text-center">
+                        💭 Start chatting to build your memory bank...
                     </p>
                 </div>
             )}
 
             {/* Memory cards */}
             {!isLoading &&
-                memories.map((memory) => (
+                memories.map((memory, idx) => (
                     <div
                         key={memory.id}
-                        className={`bg-gray-800 rounded-lg p-3 text-sm ${newIds.has(memory.id)
-                                ? "ring-2 ring-green-400 transition-all duration-700"
-                                : "transition-all duration-700"
+                        className={`rounded-lg p-3.5 text-sm transition-all duration-700 animate-slide-in border ${newIds.has(memory.id)
+                                ? "bg-gradient-to-r from-green-900/50 to-emerald-900/30 border-green-400/60 animate-glow-pulse shadow-lg shadow-green-500/30"
+                                : "bg-gradient-to-r from-purple-900/30 to-indigo-900/20 border-purple-500/30 hover:border-purple-500/60 hover:bg-gradient-to-r hover:from-purple-900/50 hover:to-indigo-900/30"
                             }`}
+                        style={{animationDelay: `${idx * 50}ms`}}
                     >
-                        <p className="font-medium text-white">
-                            {TYPE_ICONS[memory.type]}{" "}
-                            {memory.content.length > 80
-                                ? memory.content.slice(0, 80) + "..."
-                                : memory.content}
+                        <p className="font-medium text-white flex items-start gap-2">
+                            <span className="text-base">{TYPE_ICONS[memory.type]}</span>
+                            <span className="line-clamp-3">
+                                {memory.content.length > 80
+                                    ? memory.content.slice(0, 80) + "..."
+                                    : memory.content}
+                            </span>
                         </p>
-                        <p className="text-gray-400 text-xs mt-1">
+                        <p className="text-gray-400 text-xs mt-2 pl-6">
                             {timeAgo(memory.created_at)}
                         </p>
                     </div>

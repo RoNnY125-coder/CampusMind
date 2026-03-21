@@ -60,12 +60,16 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
                     body: JSON.stringify({
                         message: text,
                         userId,
-                        history: updatedHistory.slice(0, -1),
                     }),
                 });
 
-                if (!response.ok || !response.body) {
-                    throw new Error("Stream failed");
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(`Stream failed: ${response.status} - ${error}`);
+                }
+
+                if (!response.body) {
+                    throw new Error("Stream body is empty");
                 }
 
                 const reader = response.body.getReader();
@@ -123,30 +127,55 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
         messages[messages.length - 1].content === "";
 
     return (
-        <div className="h-screen flex flex-col bg-gray-950">
-            {/* ── Header ─────────────────────────────────────────────────── */}
-            <header className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-                <span className="text-white font-bold text-xl">🎓 CampusMind</span>
-                <span className="bg-indigo-900 text-indigo-300 text-xs rounded-full px-3 py-1">
+        <div className="h-screen flex flex-col bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
+            <style>{`
+                @keyframes slide-up {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes fade-in {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                .animate-slide-up {
+                    animation: slide-up 0.3s ease-out;
+                }
+                .animate-fade-in {
+                    animation: fade-in 0.5s ease-out;
+                }
+            `}</style>
+
+            {/* Header */}
+            <header className="bg-gradient-to-r from-slate-900/80 to-purple-900/80 backdrop-blur-md border-b border-purple-500/20 px-6 py-4 flex items-center justify-between">
+                <span className="text-white font-bold text-xl bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                    🎓 CampusMind
+                </span>
+                <span className="bg-gradient-to-r from-purple-600/80 to-indigo-600/80 backdrop-blur-md text-purple-100 text-xs rounded-full px-3 py-1 border border-purple-400/30">
                     AI-powered by Hindsight
                 </span>
             </header>
 
-            {/* ── Messages Area ──────────────────────────────────────────── */}
-            <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
                 {messages.length === 0 ? (
                     /* Empty state */
-                    <div className="flex flex-col items-center justify-center h-full gap-6">
-                        <span className="text-6xl">🎓</span>
-                        <p className="text-gray-400 text-xl">
-                            What can I help you with?
-                        </p>
-                        <div className="flex flex-wrap justify-center gap-2">
-                            {SUGGESTIONS.map((chip) => (
+                    <div className="flex flex-col items-center justify-center h-full gap-8 animate-fade-in">
+                        <span className="text-7xl animate-bounce" style={{animationDuration: '3s'}}>🎓</span>
+                        <div>
+                            <p className="text-gray-300 text-2xl text-center font-light">
+                                Welcome to CampusMind
+                            </p>
+                            <p className="text-gray-500 text-sm text-center mt-2">
+                                Your AI campus assistant
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-3 max-w-2xl">
+                            {SUGGESTIONS.map((chip, idx) => (
                                 <button
                                     key={chip}
                                     onClick={() => handleChipClick(chip)}
-                                    className="bg-gray-800 rounded-full px-4 py-2 text-sm text-gray-300 cursor-pointer hover:bg-gray-700 transition-colors"
+                                    className="bg-gradient-to-r from-purple-600/40 to-indigo-600/40 backdrop-blur-md rounded-full px-5 py-2.5 text-sm text-gray-200 cursor-pointer hover:from-purple-600/60 hover:to-indigo-600/60 transition-all border border-purple-500/30 hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/20 animate-slide-up"
+                                    style={{animationDelay: `${idx * 100}ms`}}
                                 >
                                     {chip}
                                 </button>
@@ -164,22 +193,22 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
                             isLoading
                         ) {
                             return (
-                                <div key={i} className="flex justify-start">
+                                <div key={i} className="flex justify-start animate-slide-up">
                                     <div>
-                                        <p className="text-gray-500 text-xs mb-1">CampusMind</p>
-                                        <div className="bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 max-w-sm">
+                                        <p className="text-gray-500 text-xs mb-2 font-medium">CampusMind</p>
+                                        <div className="bg-gradient-to-r from-slate-800/60 to-purple-900/40 backdrop-blur-md rounded-2xl rounded-tl-sm px-4 py-3 border border-purple-500/20 shadow-lg">
                                             {/* Typing dots */}
-                                            <div className="flex items-center gap-1">
+                                            <div className="flex items-center gap-1.5">
                                                 <span
-                                                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                                                    className="w-2.5 h-2.5 bg-gradient-to-r from-purple-400 to-indigo-400 rounded-full animate-bounce"
                                                     style={{ animationDelay: "0ms" }}
                                                 />
                                                 <span
-                                                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                                                    className="w-2.5 h-2.5 bg-gradient-to-r from-purple-400 to-indigo-400 rounded-full animate-bounce"
                                                     style={{ animationDelay: "150ms" }}
                                                 />
                                                 <span
-                                                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                                                    className="w-2.5 h-2.5 bg-gradient-to-r from-purple-400 to-indigo-400 rounded-full animate-bounce"
                                                     style={{ animationDelay: "300ms" }}
                                                 />
                                             </div>
@@ -191,8 +220,8 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
 
                         if (msg.role === "user") {
                             return (
-                                <div key={i} className="flex justify-end">
-                                    <div className="bg-indigo-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 max-w-xs ml-auto text-sm">
+                                <div key={i} className="flex justify-end animate-slide-up">
+                                    <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl rounded-tr-sm px-5 py-3.5 max-w-xs ml-auto text-sm shadow-lg shadow-purple-500/30">
                                         {msg.content}
                                     </div>
                                 </div>
@@ -200,10 +229,10 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
                         }
 
                         return (
-                            <div key={i} className="flex justify-start">
+                            <div key={i} className="flex justify-start animate-slide-up">
                                 <div>
-                                    <p className="text-gray-500 text-xs mb-1">CampusMind</p>
-                                    <div className="bg-gray-800 text-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 max-w-sm text-sm leading-relaxed whitespace-pre-wrap">
+                                    <p className="text-gray-500 text-xs mb-2 font-medium">CampusMind</p>
+                                    <div className="bg-gradient-to-r from-slate-800/60 to-purple-900/40 backdrop-blur-md text-gray-100 rounded-2xl rounded-tl-sm px-5 py-3.5 max-w-sm text-sm leading-relaxed whitespace-pre-wrap border border-purple-500/20 shadow-lg">
                                         {msg.content}
                                     </div>
                                 </div>
@@ -214,8 +243,8 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
                 <div ref={bottomRef} />
             </div>
 
-            {/* ── Input Bar ──────────────────────────────────────────────── */}
-            <div className="bg-gray-900 border-t border-gray-800 p-4">
+            {/* Input Bar */}
+            <div className="bg-gradient-to-r from-slate-900/80 to-purple-900/80 backdrop-blur-md border-t border-purple-500/20 p-4">
                 <div className="flex gap-3">
                     <textarea
                         ref={textareaRef}
@@ -225,12 +254,12 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
                         onKeyDown={handleKeyDown}
                         disabled={isLoading}
                         placeholder="Message CampusMind..."
-                        className="bg-gray-800 text-white rounded-2xl px-4 py-3 flex-1 resize-none outline-none focus:ring-2 focus:ring-indigo-500 text-sm disabled:opacity-40"
+                        className="bg-purple-900/30 border border-purple-500/30 text-white rounded-2xl px-4 py-3 flex-1 resize-none outline-none focus:border-purple-500/60 focus:shadow-lg focus:shadow-purple-500/20 text-sm disabled:opacity-40 transition-all placeholder-gray-500"
                     />
                     <button
                         onClick={() => handleSend()}
                         disabled={isLoading || !input.trim()}
-                        className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-2xl px-5 py-3 font-medium text-sm transition-colors"
+                        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-40 text-white rounded-2xl px-6 py-3 font-medium text-sm transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 disabled:shadow-none"
                     >
                         Send
                     </button>
