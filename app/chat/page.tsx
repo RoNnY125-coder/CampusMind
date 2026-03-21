@@ -27,9 +27,9 @@ function ChatPageContent() {
     if (!userId) return null;
 
     return (
-        <div className="flex h-screen bg-gray-950 overflow-hidden">
+        <div className="flex h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 overflow-hidden">
             {/* Left sidebar */}
-            <aside className="w-80 shrink-0 border-r border-gray-800">
+            <aside className="w-80 shrink-0 border-r border-purple-500/20">
                 <MemorySidebar userId={userId} />
             </aside>
 
@@ -43,7 +43,12 @@ function ChatPageContent() {
 
 export default function ChatPage() {
     return (
-        <Suspense fallback={<div className="h-screen flex items-center justify-center bg-gray-950 text-white">Loading...</div>}>
+        <Suspense fallback={<div className="h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 text-white">
+            <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
+                <p>Loading CampusMind...</p>
+            </div>
+        </div>}>
             <ChatPageContent />
         </Suspense>
     );
