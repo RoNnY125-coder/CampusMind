@@ -2,14 +2,9 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 import { NextResponse } from 'next/server';
-<<<<<<< HEAD
-import { recallMemories, retainMemory, reflectOnQuery, studentBank, CAMPUS_BANK } from '@/lib/hindsight';
-import { buildSystemPrompt, streamChatCompletion } from '@/lib/groq';
-=======
 import Groq from "groq-sdk"
-import { recallMemories, retainMemory, studentBank, CAMPUS_BANK } from '@/lib/hindsight';
+import { recallMemories, retainMemory, reflectOnQuery, studentBank, CAMPUS_BANK } from '@/lib/hindsight';
 import { buildSystemPrompt } from '@/lib/groq';
->>>>>>> f701be9011e1222a741ff88772d4deef23211701
 import type { ChatRequest } from '@/lib/types';
 
 export async function POST(request: Request) {
@@ -44,47 +39,17 @@ export async function POST(request: Request) {
     // Build system prompt with memories
     const systemPrompt = buildSystemPrompt(studentMems, campusMems);
 
-<<<<<<< HEAD
-    // Stream from Groq, passing the chat history
-    const stream = await streamChatCompletion(message, systemPrompt, history);
-
-    // Create a ReadableStream response
-    const readable = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content || '';
-            if (content) {
-              controller.enqueue(new TextEncoder().encode(content));
-            }
-          }
-        } catch (error) {
-          console.error('Stream error:', error);
-          controller.error(error);
-        } finally {
-          controller.close();
-
-          // After stream closes, reflect and retain the memory (non-blocking)
-          reflectOnQuery(studentBank(userId), message)
-            .then((reflection) => {
-              const memoryContent = reflection || message;
-              return retainMemory(studentBank(userId), memoryContent, 'observation');
-            })
-            .catch((e) => console.error('Failed to retain memory:', e));
-        }
-      },
-=======
     // Stream from Groq
     const chatCompletion = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: systemPrompt },
+        ...history.map(msg => ({ role: msg.role, content: msg.content })),
         { role: 'user', content: message },
       ],
       temperature: 0.7,
       max_tokens: 1024,
       stream: true,
->>>>>>> f701be9011e1222a741ff88772d4deef23211701
     });
 
     const stream = new ReadableStream({
@@ -97,8 +62,14 @@ export async function POST(request: Request) {
         } catch (e) {
           console.error("Stream error:", e)
         } finally {
-          controller.close()
-          retainMemory("student_" + userId, `Student said: "${message}"`, "chat")
+          controller.close();
+          // After stream closes, reflect and retain the memory (non-blocking)
+          reflectOnQuery(studentBank(userId), message)
+            .then((reflection) => {
+              const memoryContent = reflection || message;
+              return retainMemory(studentBank(userId), memoryContent, 'observation');
+            })
+            .catch((e) => console.error('Failed to retain memory:', e));
         }
       }
     })

@@ -1,41 +1,5 @@
 import type { MemoryUnit } from './types';
 
-<<<<<<< HEAD
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
-export async function streamChatCompletion(
-  userMessage: string,
-  systemPrompt: string,
-  history: { role: 'user' | 'assistant'; content: string }[] = []
-) {
-  const stream = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    messages: [
-      {
-        role: 'system',
-        content: systemPrompt,
-      },
-      ...history.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-      {
-        role: 'user',
-        content: userMessage,
-      },
-    ],
-    temperature: 0.7,
-    max_tokens: 1024,
-    stream: true,
-  });
-
-  return stream;
-}
-
-=======
->>>>>>> f701be9011e1222a741ff88772d4deef23211701
 export function buildSystemPrompt(
   studentMemories: MemoryUnit[],
   campusMemories: MemoryUnit[]
