@@ -15,12 +15,18 @@ export async function GET(request: Request) {
 
     try {
         const res = await fetch(
-            `${process.env.HINDSIGHT_BASE_URL}/v1/memories?bank_id=student_${userId}&limit=20`,
+            `${process.env.HINDSIGHT_BASE_URL}/v1/default/banks/student_${userId}/memories/list?limit=20`,
             { headers: { "Authorization": `Bearer ${process.env.HINDSIGHT_API_KEY}` } }
         )
         if (res.status === 404) return NextResponse.json({ memories: [] })
         const data = await res.json()
-        const memories: MemoryUnit[] = data.memories ?? data.results ?? data ?? []
+        const memories: MemoryUnit[] = (data.items ?? []).map((m: any) => ({
+            id: m.id,
+            content: m.text,
+            type: m.type ?? "experience",
+            created_at: m.mentioned_at ?? m.occurred_start ?? new Date().toISOString(),
+            tags: m.tags ?? []
+        }))
         return NextResponse.json({ memories })
     } catch (e) {
         return NextResponse.json({ memories: [] })
