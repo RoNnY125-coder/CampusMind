@@ -1,4 +1,8 @@
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+
 import { NextResponse } from 'next/server';
+import Groq from "groq-sdk"
 import { recallMemories, retainMemory, studentBank, CAMPUS_BANK } from '@/lib/hindsight';
 import { buildSystemPrompt, streamChatCompletion } from '@/lib/groq';
 import type { ChatRequest } from '@/lib/types';
@@ -33,39 +37,29 @@ export async function POST(request: Request) {
     const systemPrompt = buildSystemPrompt(studentMems, campusMems);
 
     // Stream from Groq
-    const stream = await streamChatCompletion(message, systemPrompt);
+    const chatCompletion = await streamChatCompletion(message, systemPrompt);
 
-    // Create a ReadableStream response
-    const readable = new ReadableStream({
+    const stream = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content || '';
-            if (content) {
-              controller.enqueue(new TextEncoder().encode(content));
-            }
+          for await (const chunk of chatCompletion) {
+            const text = chunk.choices[0]?.delta?.content || ""
+            if (text) controller.enqueue(new TextEncoder().encode(text))
           }
-        } catch (error) {
-          console.error('Stream error:', error);
-          controller.error(error);
+        } catch (e) {
+          console.error("Stream error:", e)
         } finally {
-          controller.close();
-
-          // After stream closes, retain the memory (non-blocking)
-          retainMemory(
-            studentBank(userId),
-            `Student asked: ${message}`,
-            'chat'
-          ).catch((e) => console.error('Failed to retain memory:', e));
+          controller.close()
+          retainMemory("student_" + userId, `Student said: "${message}"`, "chat")
         }
-      },
-    });
+      }
+    })
 
-    return new Response(readable, {
+    return new Response(stream, {
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache, no-transform',
-      },
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache",
+      }
     });
   } catch (error) {
     console.error('Chat error:', error);
