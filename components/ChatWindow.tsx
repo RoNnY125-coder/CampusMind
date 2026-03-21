@@ -9,6 +9,7 @@ interface Message {
 
 interface ChatWindowProps {
     userId: string;
+    onToggleSidebar?: () => void;
 }
 
 const SUGGESTIONS = [
@@ -17,7 +18,7 @@ const SUGGESTIONS = [
     "What clubs should I join?",
 ];
 
-export default function ChatWindow({ userId }: ChatWindowProps) {
+export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -174,10 +175,21 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
             `}</style>
 
             {/* Header */}
-            <header className="bg-gradient-to-r from-slate-900/80 to-purple-900/80 backdrop-blur-md border-b border-purple-500/20 px-6 py-4 flex items-center justify-between">
-                <span className="text-white font-bold text-xl bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
-                    🎓 CampusMind
-                </span>
+            <header className="bg-gradient-to-r from-slate-900/80 to-purple-900/80 backdrop-blur-md border-b border-purple-500/20 px-4 md:px-6 py-4 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3">
+                    {onToggleSidebar && (
+                        <button 
+                            onClick={onToggleSidebar} 
+                            className="md:hidden text-gray-300 hover:text-white p-1.5 rounded-lg bg-purple-900/30 hover:bg-purple-800/50 transition-colors border border-purple-500/20"
+                            aria-label="Toggle Menu"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        </button>
+                    )}
+                    <span className="text-white font-bold text-lg md:text-xl bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent flex items-center gap-2">
+                        <span className="hidden sm:inline">🎓</span> CampusMind
+                    </span>
+                </div>
                 <span className="bg-gradient-to-r from-purple-600/80 to-indigo-600/80 backdrop-blur-md text-purple-100 text-xs rounded-full px-3 py-1 border border-purple-400/30">
                     AI-powered by Hindsight
                 </span>
@@ -272,8 +284,8 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
             </div>
 
             {/* Input Bar */}
-            <div className="bg-gradient-to-r from-slate-900/80 to-purple-900/80 backdrop-blur-md border-t border-purple-500/20 p-4">
-                <div className="flex gap-3">
+            <div className="bg-gradient-to-r from-slate-900/80 to-purple-900/80 backdrop-blur-md border-t border-purple-500/20 p-3 md:p-4 shrink-0 pb-safe">
+                <div className="flex gap-2 md:gap-3 items-end">
                     <textarea
                         ref={textareaRef}
                         rows={1}
@@ -282,14 +294,15 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
                         onKeyDown={handleKeyDown}
                         disabled={isLoading}
                         placeholder="Message CampusMind..."
-                        className="bg-purple-900/30 border border-purple-500/30 text-white rounded-2xl px-4 py-3 flex-1 resize-none outline-none focus:border-purple-500/60 focus:shadow-lg focus:shadow-purple-500/20 text-sm disabled:opacity-40 transition-all placeholder-gray-500"
+                        className="bg-purple-900/30 border border-purple-500/30 text-white rounded-2xl px-4 py-3 min-h-[44px] max-h-32 flex-1 resize-none outline-none focus:border-purple-500/60 focus:shadow-lg focus:shadow-purple-500/20 text-sm md:text-base disabled:opacity-40 transition-all placeholder-gray-500"
                     />
                     <button
                         onClick={() => handleSend()}
                         disabled={isLoading || !input.trim()}
-                        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-40 text-white rounded-2xl px-6 py-3 font-medium text-sm transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 disabled:shadow-none"
+                        className="h-[44px] flex items-center justify-center bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-40 text-white rounded-2xl px-4 md:px-6 py-2.5 font-medium text-sm md:text-base transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 disabled:shadow-none shrink-0"
                     >
-                        Send
+                        <span className="hidden md:inline">Send</span>
+                        <svg className="md:hidden" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                     </button>
                 </div>
             </div>
