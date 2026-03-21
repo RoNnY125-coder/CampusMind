@@ -1,33 +1,4 @@
-import Groq from 'groq-sdk';
 import type { MemoryUnit } from './types';
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
-export async function streamChatCompletion(
-  userMessage: string,
-  systemPrompt: string
-) {
-  const stream = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    messages: [
-      {
-        role: 'system',
-        content: systemPrompt,
-      },
-      {
-        role: 'user',
-        content: userMessage,
-      },
-    ],
-    temperature: 0.7,
-    max_tokens: 1024,
-    stream: true,
-  });
-
-  return stream;
-}
 
 export function buildSystemPrompt(
   studentMemories: MemoryUnit[],

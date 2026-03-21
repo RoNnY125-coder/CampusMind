@@ -4,12 +4,15 @@ export const dynamic = "force-dynamic"
 import { NextResponse } from 'next/server';
 import Groq from "groq-sdk"
 import { recallMemories, retainMemory, studentBank, CAMPUS_BANK } from '@/lib/hindsight';
-import { buildSystemPrompt, streamChatCompletion } from '@/lib/groq';
+import { buildSystemPrompt } from '@/lib/groq';
 import type { ChatRequest } from '@/lib/types';
 
 export async function POST(request: Request) {
   try {
     const { message, userId } = (await request.json()) as ChatRequest;
+
+    // Groq client initialized HERE inside the function, not outside
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
     if (!message || !userId) {
       return NextResponse.json(
@@ -37,7 +40,16 @@ export async function POST(request: Request) {
     const systemPrompt = buildSystemPrompt(studentMems, campusMems);
 
     // Stream from Groq
-    const chatCompletion = await streamChatCompletion(message, systemPrompt);
+    const chatCompletion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: message },
+      ],
+      temperature: 0.7,
+      max_tokens: 1024,
+      stream: true,
+    });
 
     const stream = new ReadableStream({
       async start(controller) {
