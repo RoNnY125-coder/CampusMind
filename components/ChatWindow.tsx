@@ -21,6 +21,30 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isMounted, setIsMounted] = useState(false);
+
+    // Hydrate chat history from local storage
+    useEffect(() => {
+        setIsMounted(true);
+        if (!userId) return;
+        const saved = localStorage.getItem(`campusmind_chat_${userId}`);
+        if (saved) {
+            try {
+                setMessages(JSON.parse(saved));
+            } catch (e) {
+                console.error("Failed to load chat history", e);
+            }
+        }
+    }, [userId]);
+
+    // Persist chat history to local storage
+    useEffect(() => {
+        if (!isMounted || !userId || messages.length === 0) return;
+        
+        // Don't save empty placeholder assistant messages
+        const savable = messages.filter(m => !(m.role === "assistant" && m.content === ""));
+        localStorage.setItem(`campusmind_chat_${userId}`, JSON.stringify(savable));
+    }, [messages, userId, isMounted]);
 
     const bottomRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -54,12 +78,16 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
             setIsLoading(true);
 
             try {
+                // Determine the valid history to send (exclude any blank trailing assistant messages)
+                const conversationHistory = messages.filter(m => !(m.role === "assistant" && m.content === ""));
+                
                 const response = await fetch("/api/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         message: text,
                         userId,
+                        history: conversationHistory,
                     }),
                 });
 

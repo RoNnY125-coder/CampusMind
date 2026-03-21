@@ -7,7 +7,8 @@ const groq = new Groq({
 
 export async function streamChatCompletion(
   userMessage: string,
-  systemPrompt: string
+  systemPrompt: string,
+  history: { role: 'user' | 'assistant'; content: string }[] = []
 ) {
   const stream = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
@@ -16,6 +17,10 @@ export async function streamChatCompletion(
         role: 'system',
         content: systemPrompt,
       },
+      ...history.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      })),
       {
         role: 'user',
         content: userMessage,
@@ -51,7 +56,7 @@ CAMPUS KNOWLEDGE YOU HAVE ACCESS TO:
 ${campusMemContent}
 
 RULES:
-1. Always use student memories to personalize every response. If you recall something, say it: "I remember you're in 2nd year CSE..." or "Based on your interest in coding..."
+1. Use student memories to personalize your responses, but DO NOT artificially repeat facts (like their major or clubs) if you already acknowledged them earlier in the conversation. Weave memories in naturally.
 2. Proactively surface upcoming deadlines if mentioned in memories and relevant to the query.
 3. Suggest events matching their known interests — be specific, not generic.
 4. Keep responses concise (2–4 sentences) unless asked for detail.

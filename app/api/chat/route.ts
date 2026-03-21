@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { recallMemories, retainMemory, studentBank, CAMPUS_BANK } from '@/lib/hindsight';
+import { recallMemories, retainMemory, reflectOnQuery, studentBank, CAMPUS_BANK } from '@/lib/hindsight';
 import { buildSystemPrompt, streamChatCompletion } from '@/lib/groq';
 import type { ChatRequest } from '@/lib/types';
 
 export async function POST(request: Request) {
   try {
-    const { message, userId } = (await request.json()) as ChatRequest;
+    const { message, userId, history = [] } = (await request.json()) as ChatRequest;
 
     if (!message || !userId) {
       return NextResponse.json(
@@ -32,8 +32,8 @@ export async function POST(request: Request) {
     // Build system prompt with memories
     const systemPrompt = buildSystemPrompt(studentMems, campusMems);
 
-    // Stream from Groq
-    const stream = await streamChatCompletion(message, systemPrompt);
+    // Stream from Groq, passing the chat history
+    const stream = await streamChatCompletion(message, systemPrompt, history);
 
     // Create a ReadableStream response
     const readable = new ReadableStream({
@@ -51,12 +51,13 @@ export async function POST(request: Request) {
         } finally {
           controller.close();
 
-          // After stream closes, retain the memory (non-blocking)
-          retainMemory(
-            studentBank(userId),
-            `Student asked: ${message}`,
-            'chat'
-          ).catch((e) => console.error('Failed to retain memory:', e));
+          // After stream closes, reflect and retain the memory (non-blocking)
+          reflectOnQuery(studentBank(userId), message)
+            .then((reflection) => {
+              const memoryContent = reflection || message;
+              return retainMemory(studentBank(userId), memoryContent, 'observation');
+            })
+            .catch((e) => console.error('Failed to retain memory:', e));
         }
       },
     });
