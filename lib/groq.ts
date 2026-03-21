@@ -1,6 +1,6 @@
-import Groq from 'groq-sdk';
 import type { MemoryUnit } from './types';
 
+<<<<<<< HEAD
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
@@ -34,6 +34,8 @@ export async function streamChatCompletion(
   return stream;
 }
 
+=======
+>>>>>>> f701be9011e1222a741ff88772d4deef23211701
 export function buildSystemPrompt(
   studentMemories: MemoryUnit[],
   campusMemories: MemoryUnit[]
