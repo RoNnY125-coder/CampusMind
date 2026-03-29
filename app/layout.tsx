@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
   title: "CampusMind — AI Campus Assistant",
@@ -27,7 +28,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-surface-100 text-[#f1f0ff] font-sans antialiased">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

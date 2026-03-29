@@ -1,12 +1,17 @@
 "use client";
 
+import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/lib/supabase";
 
 export default function LandingPage() {
     const router = useRouter();
+    const { data: session, status } = useSession();
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const [isHovered, setIsHovered] = useState(false);
+    const [isCheckingUser, setIsCheckingUser] = useState(false);
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
@@ -15,6 +20,32 @@ export default function LandingPage() {
         window.addEventListener("mousemove", handleMouseMove);
         return () => window.removeEventListener("mousemove", handleMouseMove);
     }, []);
+
+    const handleGetStarted = async () => {
+        if (status === "unauthenticated") {
+            signIn("google");
+        } else if (status === "authenticated" && session?.user) {
+            setIsCheckingUser(true);
+            try {
+                const { data, error } = await supabase
+                    .from('students')
+                    .select('has_onboarded')
+                    .eq('id', (session.user as any).id)
+                    .single();
+                
+                if (data?.has_onboarded) {
+                    router.push("/chat");
+                } else {
+                    router.push("/onboard");
+                }
+            } catch (error) {
+                console.error("Error checking user onboarding status", error);
+                router.push("/onboard"); // default to onboard if error
+            } finally {
+                setIsCheckingUser(false);
+            }
+        }
+    };
 
     return (
         <div className="relative w-full min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 overflow-hidden">
@@ -50,64 +81,97 @@ export default function LandingPage() {
                 </div>
 
                 {/* Main content */}
-                <div className="flex flex-col items-center gap-8 text-center max-w-2xl animate-fade-in">
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    className="flex flex-col items-center gap-8 text-center max-w-2xl"
+                >
                     {/* Icon with glow */}
                     <div className="relative">
                         <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full filter blur-2xl opacity-60 animate-pulse"></div>
-                        <div className="relative text-8xl drop-shadow-2xl animate-bounce-slow">🎓</div>
+                        <motion.div 
+                            animate={{ y: [-10, 0, -10] }}
+                            transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                            className="relative text-8xl drop-shadow-2xl"
+                        >🎓</motion.div>
                     </div>
 
                     {/* Title with gradient */}
                     <div className="space-y-4">
-                        <h1 className="text-6xl md:text-7xl font-black bg-gradient-to-r from-purple-300 via-pink-300 to-indigo-300 bg-clip-text text-transparent drop-shadow-lg animate-fade-in-delay-1">
+                        <motion.h1 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1, duration: 0.6 }}
+                            className="text-6xl md:text-7xl font-black bg-gradient-to-r from-purple-300 via-pink-300 to-indigo-300 bg-clip-text text-transparent drop-shadow-lg"
+                        >
                             CampusMind
-                        </h1>
+                        </motion.h1>
                         <div className="h-1 w-32 mx-auto bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 rounded-full animate-pulse"></div>
                     </div>
 
                     {/* Description */}
-                    <p className="text-lg md:text-xl text-gray-300 max-w-lg leading-relaxed animate-fade-in-delay-2">
+                    <motion.p 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2, duration: 0.6 }}
+                        className="text-lg md:text-xl text-gray-300 max-w-lg leading-relaxed"
+                    >
                         Meet your <span className="text-purple-300 font-semibold">AI-powered campus companion</span> that learns, remembers, and grows with you. Experience intelligence that understands your journey.
-                    </p>
+                    </motion.p>
 
                     {/* Stats cards */}
-                    <div className="grid grid-cols-3 gap-4 my-6 w-full max-w-md">
-                        <div className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 backdrop-blur-lg border border-purple-400/30 rounded-xl p-4 hover:from-purple-500/40 hover:to-indigo-500/40 transition-all duration-300 transform hover:scale-110 animate-fade-in-delay-3">
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3, duration: 0.6 }}
+                        className="grid grid-cols-3 gap-4 my-6 w-full max-w-md"
+                    >
+                        <motion.div whileHover={{ scale: 1.1 }} className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 backdrop-blur-lg border border-purple-400/30 rounded-xl p-4 hover:from-purple-500/40 hover:to-indigo-500/40 transition-all duration-300">
                             <div className="text-2xl font-bold text-purple-300">24/7</div>
                             <div className="text-xs text-gray-400">Available</div>
-                        </div>
-                        <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-lg border border-blue-400/30 rounded-xl p-4 hover:from-blue-500/40 hover:to-cyan-500/40 transition-all duration-300 transform hover:scale-110 animate-fade-in-delay-4">
+                        </motion.div>
+                        <motion.div whileHover={{ scale: 1.1 }} className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-lg border border-blue-400/30 rounded-xl p-4 hover:from-blue-500/40 hover:to-cyan-500/40 transition-all duration-300">
                             <div className="text-2xl font-bold text-blue-300">∞</div>
                             <div className="text-xs text-gray-400">Memory</div>
-                        </div>
-                        <div className="bg-gradient-to-br from-pink-500/20 to-rose-500/20 backdrop-blur-lg border border-pink-400/30 rounded-xl p-4 hover:from-pink-500/40 hover:to-rose-500/40 transition-all duration-300 transform hover:scale-110 animate-fade-in-delay-5">
-                            <div className="text-2xl font-bold text-pink-300">AI</div>
-                            <div className="text-xs text-gray-400">Powered</div>
-                        </div>
-                    </div>
+                        </motion.div>
+                        <motion.div whileHover={{ scale: 1.1 }} className="bg-gradient-to-br from-pink-500/20 to-rose-500/20 backdrop-blur-lg border border-pink-400/30 rounded-xl p-4 hover:from-pink-500/40 hover:to-rose-500/40 transition-all duration-300">
+                            <div className="text-2xl font-bold text-pink-300">100%</div>
+                            <div className="text-xs text-gray-400">Personalized</div>
+                        </motion.div>
+                    </motion.div>
 
                     {/* CTA Button with floating effect */}
-                    <button
-                        onClick={() => router.push("/onboard")}
+                    <motion.button
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4, duration: 0.6 }}
+                        onClick={handleGetStarted}
                         onMouseEnter={() => setIsHovered(true)}
                         onMouseLeave={() => setIsHovered(false)}
-                        className="relative mt-8 group animate-fade-in-delay-6"
+                        disabled={status === "loading" || isCheckingUser}
+                        className="relative mt-8 group"
                     >
                         {/* Button glow */}
                         <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 rounded-full blur-lg opacity-75 group-hover:opacity-100 transition-opacity duration-300 animate-pulse"></div>
                         
                         {/* Button */}
-                        <div className="relative bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:via-indigo-500 hover:to-purple-500 text-white px-10 py-4 rounded-full text-lg font-bold transition-all duration-300 transform hover:scale-110 hover:shadow-2xl cursor-pointer flex items-center gap-3 group-hover:gap-4">
-                            <span>Get Started</span>
-                            <span className="text-xl transform group-hover:translate-x-1 transition-transform">→</span>
+                        <div className="relative bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:via-indigo-500 hover:to-purple-500 text-white px-10 py-4 rounded-full text-lg font-bold transition-all duration-300 transform hover:scale-110 hover:shadow-2xl cursor-pointer flex items-center gap-3 group-hover:gap-4 disabled:opacity-50">
+                            <span>{status === "loading" || isCheckingUser ? "Loading..." : "Get Started"}</span>
+                            {!isCheckingUser && status !== "loading" && <span className="text-xl transform group-hover:translate-x-1 transition-transform">→</span>}
                         </div>
-                    </button>
+                    </motion.button>
 
                     {/* Floating features */}
-                    <div className="mt-16 text-sm text-gray-400 animate-fade-in-delay-7">
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5, duration: 0.6 }}
+                        className="mt-16 text-sm text-gray-400"
+                    >
                         ✨ Join thousands of students already using CampusMind
-                    </div>
-                </div>
+                    </motion.div>
+                </motion.div>
 
                 {/* Animated background elements */}
                 <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none"></div>

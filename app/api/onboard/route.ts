@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { retainMemory, studentBank } from '@/lib/hindsight';
+import { supabase } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
@@ -13,6 +14,24 @@ export async function POST(request: Request) {
     }
 
     console.log(`🎓 Onboarding student: ${name} (${userId})`);
+
+    // Upsert user profile in Supabase
+    const { error: dbError } = await supabase
+        .from('students')
+        .upsert({ 
+            id: userId,
+            name,
+            year,
+            branch,
+            interests,
+            clubs,
+            has_onboarded: true
+        });
+
+    if (dbError) {
+        console.error('❌ Supabase error:', dbError);
+        return NextResponse.json({ error: 'Failed to save profile' }, { status: 500 });
+    }
 
     // Retain all onboarding data with proper error handling
     const memoriesToRetain = [

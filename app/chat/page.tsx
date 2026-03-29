@@ -1,31 +1,43 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import MemorySidebar from "@/components/MemorySidebar";
 import ChatWindow from "@/components/ChatWindow";
 
-function ChatPageContent() {
-    const searchParams = useSearchParams();
+export default function ChatPage() {
+    const { data: session, status } = useSession();
     const router = useRouter();
     const [userId, setUserId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
-        const id = searchParams.get("userId");
-        if (!id) {
-            router.push("/onboard");
+        if (status === "unauthenticated") {
+            router.push("/");
             return;
         }
-        setUserId(id);
 
-        // Seed campus knowledge (idempotent — skips if already seeded)
-        fetch("/api/seed", { method: "POST" }).catch((err) =>
-            console.error("Failed to seed campus data:", err)
+        if (status === "authenticated" && session?.user) {
+            setUserId((session.user as any).id);
+
+            // Seed campus knowledge (idempotent — skips if already seeded)
+            fetch("/api/seed", { method: "POST" }).catch((err) =>
+                console.error("Failed to seed campus data:", err)
+            );
+        }
+    }, [status, session, router]);
+
+    if (status === "loading" || !userId) {
+        return (
+            <div className="h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 text-white">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
+                    <p>Loading CampusMind...</p>
+                </div>
+            </div>
         );
-    }, [searchParams, router]);
-
-    if (!userId) return null;
+    }
 
     return (
         <div className="flex h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 overflow-hidden relative">
@@ -49,18 +61,5 @@ function ChatPageContent() {
                 <ChatWindow userId={userId} onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
             </main>
         </div>
-    );
-}
-
-export default function ChatPage() {
-    return (
-        <Suspense fallback={<div className="h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 text-white">
-            <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
-                <p>Loading CampusMind...</p>
-            </div>
-        </div>}>
-            <ChatPageContent />
-        </Suspense>
     );
 }

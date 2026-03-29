@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface FormData {
     name: string;
@@ -39,9 +41,15 @@ export default function OnboardPage() {
         clubs: [],
     });
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-    const [direction, setDirection] = useState<"forward" | "back">("forward");
-    const [isAnimating, setIsAnimating] = useState<boolean>(false);
-    const [slideClass, setSlideClass] = useState<string>("translate-x-0 opacity-100");
+    const { data: session, status } = useSession();
+    
+    // Check if user is logged in
+    useEffect(() => {
+        if (status === "unauthenticated") {
+            router.push("/");
+        }
+    }, [status, router]);
+
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const [isHovered, setIsHovered] = useState(false);
 
@@ -52,36 +60,6 @@ export default function OnboardPage() {
         window.addEventListener("mousemove", handleMouseMove);
         return () => window.removeEventListener("mousemove", handleMouseMove);
     }, []);
-
-    const animateTransition = useCallback(
-        (newStep: number, dir: "forward" | "back") => {
-            setDirection(dir);
-            setIsAnimating(true);
-
-            setSlideClass(
-                dir === "forward"
-                    ? "-translate-x-full opacity-0"
-                    : "translate-x-full opacity-0"
-            );
-
-            setTimeout(() => {
-                setStep(newStep);
-                setSlideClass(
-                    dir === "forward"
-                        ? "translate-x-full opacity-0"
-                        : "-translate-x-full opacity-0"
-                );
-
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        setSlideClass("translate-x-0 opacity-100");
-                        setTimeout(() => setIsAnimating(false), 300);
-                    });
-                });
-            }, 250);
-        },
-        []
-    );
 
     const canProceed = (): boolean => {
         switch (step) {
@@ -99,14 +77,14 @@ export default function OnboardPage() {
     };
 
     const handleNext = () => {
-        if (step < TOTAL_STEPS && canProceed() && !isAnimating) {
-            animateTransition(step + 1, "forward");
+        if (step < TOTAL_STEPS && canProceed()) {
+            setStep(step + 1);
         }
     };
 
     const handleBack = () => {
-        if (step > 1 && !isAnimating) {
-            animateTransition(step - 1, "back");
+        if (step > 1) {
+            setStep(step - 1);
         }
     };
 
@@ -131,10 +109,10 @@ export default function OnboardPage() {
     const handleSubmit = async () => {
         setIsSubmitting(true);
         try {
-            let userId = localStorage.getItem("campusmind_userId");
+            const userId = (session?.user as any)?.id;
             if (!userId) {
-                userId = crypto.randomUUID();
-                localStorage.setItem("campusmind_userId", userId);
+                alert("You need to be signed in to onboard.");
+                return;
             }
 
             const res = await fetch("/api/onboard", {
@@ -145,7 +123,7 @@ export default function OnboardPage() {
 
             if (!res.ok) throw new Error("Onboarding failed");
 
-            router.push("/chat?userId=" + userId);
+            router.push("/chat");
         } catch (error) {
             console.error("Onboard error:", error);
             alert("Something went wrong, please try again");
@@ -245,146 +223,152 @@ export default function OnboardPage() {
                         </p>
 
                         {/* Step Content (Animated) */}
-                        <div className="overflow-hidden">
-                            <div
-                                className={`transform transition-all duration-300 ease-in-out ${slideClass}`}
-                            >
-                                {/* Step 1 — Tell us about you */}
-                                {step === 1 && (
-                                    <div className="space-y-5 animate-fade-in">
-                                        <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent">
-                                            Tell us about you ✌️
-                                        </h2>
-                                        <div>
-                                            <label className="text-gray-300 text-sm block mb-2 font-medium">
-                                                Full Name
-                                            </label>
-                                            <input
-                                                type="text"
-                                                placeholder="Rahul Sharma"
-                                                value={formData.name}
-                                                onChange={(e) =>
-                                                    setFormData((prev) => ({ ...prev, name: e.target.value }))
-                                                }
-                                                className="w-full bg-purple-900/20 border border-purple-500/30 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500/60 focus:shadow-lg focus:shadow-purple-500/20 placeholder-gray-500 transition-all"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-gray-300 text-sm block mb-2 font-medium">
-                                                Year
-                                            </label>
-                                            <select
-                                                value={formData.year}
-                                                onChange={(e) =>
-                                                    setFormData((prev) => ({ ...prev, year: e.target.value }))
-                                                }
-                                                className="w-full bg-purple-900/20 border border-purple-500/30 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500/60 focus:shadow-lg focus:shadow-purple-500/20 appearance-none transition-all"
-                                            >
-                                                <option value="" disabled>
-                                                    Select your year
-                                                </option>
-                                                {YEARS.map((y) => (
-                                                    <option key={y} value={y}>
-                                                        {y}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Step 2 — Your department */}
-                                {step === 2 && (
-                                    <div className="space-y-5 animate-fade-in">
-                                        <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent">
-                                            Your department 🏛️
-                                        </h2>
-                                        <div>
-                                            <label className="text-gray-300 text-sm block mb-2 font-medium">
-                                                Branch
-                                            </label>
-                                            <select
-                                                value={formData.branch}
-                                                onChange={(e) =>
-                                                    setFormData((prev) => ({
-                                                        ...prev,
-                                                        branch: e.target.value,
-                                                    }))
-                                                }
-                                                className="w-full bg-purple-900/20 border border-purple-500/30 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500/60 focus:shadow-lg focus:shadow-purple-500/20 appearance-none transition-all"
-                                            >
-                                                <option value="" disabled>
-                                                    Select your branch
-                                                </option>
-                                                {BRANCHES.map((b) => (
-                                                    <option key={b} value={b}>
-                                                        {b}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <p className="text-gray-400 text-xs">
-                                            ✨ We'll tailor recommendations for your field
-                                        </p>
-                                    </div>
-                                )}
-
-                                {/* Step 3 — What are you into? */}
-                                {step === 3 && (
-                                    <div className="space-y-5 animate-fade-in">
-                                        <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent">
-                                            What are you into? 🎯
-                                        </h2>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {INTERESTS.map((interest) => (
-                                                <button
-                                                    key={interest}
-                                                    onClick={() => toggleInterest(interest)}
-                                                    className={`rounded-xl border p-3 cursor-pointer text-sm text-left transition-all transform hover:scale-105 ${formData.interests.includes(interest)
-                                                            ? "border-purple-500/60 bg-purple-900/40 text-purple-200 shadow-lg shadow-purple-500/30"
-                                                            : "border-purple-500/20 text-gray-400 hover:border-purple-500/40 bg-purple-900/10"
-                                                        }`}
+                        <div className="overflow-hidden min-h-[350px]">
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={step}
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    {/* Step 1 — Tell us about you */}
+                                    {step === 1 && (
+                                        <div className="space-y-5 animate-fade-in">
+                                            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent">
+                                                Tell us about you ✌️
+                                            </h2>
+                                            <div>
+                                                <label className="text-gray-300 text-sm block mb-2 font-medium">
+                                                    Full Name
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Rahul Sharma"
+                                                    value={formData.name}
+                                                    onChange={(e) =>
+                                                        setFormData((prev) => ({ ...prev, name: e.target.value }))
+                                                    }
+                                                    className="w-full bg-purple-900/20 border border-purple-500/30 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500/60 focus:shadow-lg focus:shadow-purple-500/20 placeholder-gray-500 transition-all"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-gray-300 text-sm block mb-2 font-medium">
+                                                    Year
+                                                </label>
+                                                <select
+                                                    value={formData.year}
+                                                    onChange={(e) =>
+                                                        setFormData((prev) => ({ ...prev, year: e.target.value }))
+                                                    }
+                                                    className="w-full bg-purple-900/20 border border-purple-500/30 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500/60 focus:shadow-lg focus:shadow-purple-500/20 appearance-none transition-all"
                                                 >
-                                                    {interest}
-                                                </button>
-                                            ))}
+                                                    <option value="" disabled>
+                                                        Select your year
+                                                    </option>
+                                                    {YEARS.map((y) => (
+                                                        <option key={y} value={y}>
+                                                            {y}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {/* Step 4 — Join some clubs */}
-                                {step === 4 && (
-                                    <div className="space-y-5 animate-fade-in">
-                                        <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent">
-                                            Join some clubs 🚀
-                                        </h2>
-                                        <div className="space-y-3">
-                                            {CLUBS.map((club) => (
-                                                <button
-                                                    key={club.name}
-                                                    onClick={() => toggleClub(club.name)}
-                                                    className={`w-full rounded-xl border p-4 cursor-pointer text-left transition-all transform hover:scale-105 ${formData.clubs.includes(club.name)
-                                                            ? "border-purple-500/60 bg-purple-900/40 shadow-lg shadow-purple-500/30"
-                                                            : "border-purple-500/20 hover:border-purple-500/40 bg-purple-900/10"
-                                                        }`}
+                                    {/* Step 2 — Your department */}
+                                    {step === 2 && (
+                                        <div className="space-y-5 animate-fade-in">
+                                            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent">
+                                                Your department 🏛️
+                                            </h2>
+                                            <div>
+                                                <label className="text-gray-300 text-sm block mb-2 font-medium">
+                                                    Branch
+                                                </label>
+                                                <select
+                                                    value={formData.branch}
+                                                    onChange={(e) =>
+                                                        setFormData((prev) => ({
+                                                            ...prev,
+                                                            branch: e.target.value,
+                                                        }))
+                                                    }
+                                                    className="w-full bg-purple-900/20 border border-purple-500/30 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500/60 focus:shadow-lg focus:shadow-purple-500/20 appearance-none transition-all"
                                                 >
-                                                    <p
-                                                        className={`font-medium text-sm ${formData.clubs.includes(club.name)
-                                                                ? "text-purple-200"
-                                                                : "text-white"
+                                                    <option value="" disabled>
+                                                        Select your branch
+                                                    </option>
+                                                    {BRANCHES.map((b) => (
+                                                        <option key={b} value={b}>
+                                                            {b}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <p className="text-gray-400 text-xs">
+                                                ✨ We'll tailor recommendations for your field
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Step 3 — What are you into? */}
+                                    {step === 3 && (
+                                        <div className="space-y-5 animate-fade-in">
+                                            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent">
+                                                What are you into? 🎯
+                                            </h2>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {INTERESTS.map((interest) => (
+                                                    <button
+                                                        key={interest}
+                                                        onClick={() => toggleInterest(interest)}
+                                                        className={`rounded-xl border p-3 cursor-pointer text-sm text-left transition-all transform hover:scale-105 ${formData.interests.includes(interest)
+                                                                ? "border-purple-500/60 bg-purple-900/40 text-purple-200 shadow-lg shadow-purple-500/30"
+                                                                : "border-purple-500/20 text-gray-400 hover:border-purple-500/40 bg-purple-900/10"
                                                             }`}
                                                     >
-                                                        {club.name}
-                                                    </p>
-                                                    <p className="text-gray-400 text-xs mt-1">
-                                                        {club.description}
-                                                    </p>
-                                                </button>
-                                            ))}
+                                                        {interest}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
+                                    )}
+
+                                    {/* Step 4 — Join some clubs */}
+                                    {step === 4 && (
+                                        <div className="space-y-5 animate-fade-in">
+                                            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent">
+                                                Join some clubs 🚀
+                                            </h2>
+                                            <div className="space-y-3">
+                                                {CLUBS.map((club) => (
+                                                    <button
+                                                        key={club.name}
+                                                        onClick={() => toggleClub(club.name)}
+                                                        className={`w-full rounded-xl border p-4 cursor-pointer text-left transition-all transform hover:scale-105 ${formData.clubs.includes(club.name)
+                                                                ? "border-purple-500/60 bg-purple-900/40 shadow-lg shadow-purple-500/30"
+                                                                : "border-purple-500/20 hover:border-purple-500/40 bg-purple-900/10"
+                                                            }`}
+                                                    >
+                                                        <p
+                                                            className={`font-medium text-sm ${formData.clubs.includes(club.name)
+                                                                    ? "text-purple-200"
+                                                                    : "text-white"
+                                                                }`}
+                                                        >
+                                                            {club.name}
+                                                        </p>
+                                                        <p className="text-gray-400 text-xs mt-1">
+                                                            {club.description}
+                                                        </p>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            </AnimatePresence>
                         </div>
 
                         {/* Navigation Buttons */}
@@ -392,7 +376,6 @@ export default function OnboardPage() {
                             {step > 1 ? (
                                 <button
                                     onClick={handleBack}
-                                    disabled={isAnimating}
                                     className="text-gray-300 hover:text-white text-sm font-medium transition-colors disabled:opacity-40 hover:bg-purple-900/30 px-4 py-2 rounded-lg"
                                 >
                                     ← Back
@@ -404,7 +387,7 @@ export default function OnboardPage() {
                             {step < TOTAL_STEPS ? (
                                 <button
                                     onClick={handleNext}
-                                    disabled={!canProceed() || isAnimating}
+                                    disabled={!canProceed()}
                                     className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-40 text-white rounded-xl px-6 py-2.5 text-sm font-medium transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 disabled:shadow-none"
                                 >
                                     Next →
@@ -412,7 +395,7 @@ export default function OnboardPage() {
                             ) : (
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={isSubmitting || isAnimating}
+                                    disabled={isSubmitting}
                                     className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-40 text-white rounded-xl px-6 py-2.5 text-sm font-medium transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 disabled:shadow-none"
                                 >
                                     {isSubmitting ? "Setting up..." : "🚀 Let's Go!"}

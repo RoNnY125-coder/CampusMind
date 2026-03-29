@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, KeyboardEvent } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Message {
     role: "user" | "assistant";
@@ -197,9 +198,15 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+                <AnimatePresence>
                 {messages.length === 0 ? (
                     /* Empty state */
-                    <div className="flex flex-col items-center justify-center h-full gap-8 animate-fade-in">
+                    <motion.div 
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }} 
+                        exit={{ opacity: 0 }}
+                        className="flex flex-col items-center justify-center h-full gap-8"
+                    >
                         <span className="text-7xl animate-bounce" style={{animationDuration: '3s'}}>🎓</span>
                         <div>
                             <p className="text-gray-300 text-2xl text-center font-light">
@@ -221,7 +228,7 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                                 </button>
                             ))}
                         </div>
-                    </div>
+                    </motion.div>
                 ) : (
                     /* Message bubbles */
                     messages.map((msg, i) => {
@@ -233,7 +240,13 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                             isLoading
                         ) {
                             return (
-                                <div key={i} className="flex justify-start animate-slide-up">
+                                <motion.div 
+                                    key={i} 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="flex justify-start"
+                                >
                                     <div>
                                         <p className="text-gray-500 text-xs mb-2 font-medium">CampusMind</p>
                                         <div className="bg-gradient-to-r from-slate-800/60 to-purple-900/40 backdrop-blur-md rounded-2xl rounded-tl-sm px-4 py-3 border border-purple-500/20 shadow-lg">
@@ -254,32 +267,45 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                </motion.div>
                             );
                         }
 
                         if (msg.role === "user") {
                             return (
-                                <div key={i} className="flex justify-end animate-slide-up">
+                                <motion.div 
+                                    key={i} 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="flex justify-end"
+                                >
                                     <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl rounded-tr-sm px-5 py-3.5 max-w-xs ml-auto text-sm shadow-lg shadow-purple-500/30">
                                         {msg.content}
                                     </div>
-                                </div>
+                                </motion.div>
                             );
                         }
 
                         return (
-                            <div key={i} className="flex justify-start animate-slide-up">
+                            <motion.div 
+                                key={i}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="flex justify-start"
+                            >
                                 <div>
                                     <p className="text-gray-500 text-xs mb-2 font-medium">CampusMind</p>
                                     <div className="bg-gradient-to-r from-slate-800/60 to-purple-900/40 backdrop-blur-md text-gray-100 rounded-2xl rounded-tl-sm px-5 py-3.5 max-w-sm text-sm leading-relaxed whitespace-pre-wrap border border-purple-500/20 shadow-lg">
                                         {msg.content}
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         );
                     })
                 )}
+                </AnimatePresence>
                 <div ref={bottomRef} />
             </div>
 

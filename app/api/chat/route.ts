@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic"
 
 import { NextResponse } from 'next/server';
 import Groq from "groq-sdk"
-import { recallMemories, retainMemory, reflectOnQuery, studentBank, CAMPUS_BANK } from '@/lib/hindsight';
+import { recallMemories, retainMemory, studentBank, CAMPUS_BANK } from '@/lib/hindsight';
 import { buildSystemPrompt } from '@/lib/groq';
 import type { ChatRequest } from '@/lib/types';
 
@@ -31,10 +31,18 @@ export async function POST(request: Request) {
     }
 
     // Parallel recall from both banks
-    const [studentMems, campusMems] = await Promise.all([
+    const [profileMems, contextMems, campusMems] = await Promise.all([
+      recallMemories(studentBank(userId), 'profile student name branch year interests'),
       recallMemories(studentBank(userId), message),
       recallMemories(CAMPUS_BANK, message),
     ]);
+
+    // Deduplicate student memories (union of a + b by id)
+    const studentMemoriesMap = new Map();
+    [...profileMems, ...contextMems].forEach((m) => {
+      studentMemoriesMap.set(m.id, m);
+    });
+    const studentMems = Array.from(studentMemoriesMap.values());
 
     // Build system prompt with memories
     const systemPrompt = buildSystemPrompt(studentMems, campusMems);
@@ -63,12 +71,8 @@ export async function POST(request: Request) {
           console.error("Stream error:", e)
         } finally {
           controller.close();
-          // After stream closes, reflect and retain the memory (non-blocking)
-          reflectOnQuery(studentBank(userId), message)
-            .then((reflection) => {
-              const memoryContent = reflection || message;
-              return retainMemory(studentBank(userId), memoryContent, 'observation');
-            })
+          // After stream closes, retain the memory (non-blocking)
+          retainMemory(studentBank(userId), `Student asked: ${message}`, 'chat')
             .catch((e) => console.error('Failed to retain memory:', e));
         }
       }
