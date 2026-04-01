@@ -1,34 +1,35 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Brain, Zap, Lock, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useSupabaseAuth } from "@/components/SupabaseAuthProvider";
 
 export default function LandingPage() {
     const router = useRouter();
-    const { data: session, status } = useSession();
+    const { user, loading } = useSupabaseAuth();
     const [isCheckingUser, setIsCheckingUser] = useState(false);
 
     const handleGetStarted = async () => {
-        if (status === "unauthenticated") {
+        if (loading) return;
+        if (!user) {
             router.push("/login");
-        } else if (status === "authenticated" && session?.user) {
-            setIsCheckingUser(true);
-            try {
-                const { data } = await supabase
-                    .from('students')
-                    .select('has_onboarded')
-                    .eq('id', (session.user as any).id)
-                    .single();
-                router.push(data?.has_onboarded ? "/chat" : "/onboard");
-            } catch {
-                router.push("/onboard");
-            } finally {
-                setIsCheckingUser(false);
-            }
+            return;
+        }
+        setIsCheckingUser(true);
+        try {
+            const { data } = await supabase
+                .from("students")
+                .select("has_onboarded")
+                .eq("id", user.id)
+                .single();
+            router.push(data?.has_onboarded ? "/chat" : "/onboard");
+        } catch {
+            router.push("/onboard");
+        } finally {
+            setIsCheckingUser(false);
         }
     };
 
@@ -100,11 +101,11 @@ export default function LandingPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.3 }}
                     onClick={handleGetStarted}
-                    disabled={status === "loading" || isCheckingUser}
+                    disabled={loading || isCheckingUser}
                     className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl text-white font-semibold text-base transition-all duration-200 disabled:opacity-50 shadow-glow-blue hover:shadow-glow-blue-lg"
                     style={{ background: "linear-gradient(135deg, #2563eb, #06b6d4)" }}
                 >
-                    {status === "loading" || isCheckingUser ? "Loading..." : "Get Started"}
+                    {loading || isCheckingUser ? "Loading..." : "Get Started"}
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </motion.button>
 

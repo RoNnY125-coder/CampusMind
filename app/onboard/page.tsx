@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSupabaseAuth } from "@/components/SupabaseAuthProvider";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface FormData {
@@ -41,14 +41,14 @@ export default function OnboardPage() {
         clubs: [],
     });
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-    const { data: session, status } = useSession();
-    
-    // Check if user is logged in
+    const { user, loading } = useSupabaseAuth();
+
     useEffect(() => {
-        if (status === "unauthenticated") {
-            router.push("/");
+        if (loading) return;
+        if (!user) {
+            router.replace("/login");
         }
-    }, [status, router]);
+    }, [loading, user, router]);
 
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const [isHovered, setIsHovered] = useState(false);
@@ -109,7 +109,7 @@ export default function OnboardPage() {
     const handleSubmit = async () => {
         setIsSubmitting(true);
         try {
-            const userId = (session?.user as any)?.id;
+            const userId = user?.id;
             if (!userId) {
                 alert("You need to be signed in to onboard.");
                 return;
@@ -131,6 +131,17 @@ export default function OnboardPage() {
             setIsSubmitting(false);
         }
     };
+
+    if (loading || !user) {
+        return (
+            <div className="min-h-screen bg-black flex items-center justify-center text-white">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+                    <p className="text-sm text-gray-400">Loading...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div 

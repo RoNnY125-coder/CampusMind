@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, KeyboardEvent } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain, Send, Menu } from "lucide-react";
+import { Brain, Send, Menu, LogOut } from "lucide-react";
+import { useSupabaseAuth } from "@/components/SupabaseAuthProvider";
 
 interface Message {
     role: "user" | "assistant";
@@ -22,6 +23,8 @@ const SUGGESTIONS = [
 ];
 
 export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps) {
+    const router = useRouter();
+    const { signOut } = useSupabaseAuth();
     const searchParams = useSearchParams();
     const urlSessionId = searchParams.get("session");
     const [messages, setMessages] = useState<Message[]>([]);
@@ -188,6 +191,12 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
         handleSend(text);
     };
 
+    const handleLogout = async () => {
+        await signOut();
+        router.replace("/");
+        router.refresh();
+    };
+
     const showTypingIndicator =
         isLoading &&
         messages.length > 0 &&
@@ -211,9 +220,20 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                         <Brain className="w-5 h-5 text-blue-500" /> CampusMind
                     </span>
                 </div>
-                <span className="bg-gray-800 text-blue-300 text-xs rounded-full px-3 py-1 border border-blue-500/30">
-                    AI-powered by Hindsight
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className="hidden sm:inline bg-gray-800 text-blue-300 text-xs rounded-full px-3 py-1 border border-blue-500/30">
+                        AI-powered by Hindsight
+                    </span>
+                    <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex items-center gap-1.5 text-gray-400 hover:text-white text-sm px-2 py-1.5 rounded-lg border border-white/10 hover:border-blue-500/30 transition-colors"
+                        aria-label="Sign out"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        <span className="hidden sm:inline">Sign out</span>
+                    </button>
+                </div>
             </header>
 
             {/* Messages Area */}

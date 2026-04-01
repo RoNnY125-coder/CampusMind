@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { retainMemory, recallMemories, CAMPUS_BANK } from '@/lib/hindsight';
 import { CAMPUS_DATA } from '@/lib/campus-data';
 

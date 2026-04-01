@@ -2,34 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSupabaseAuth } from "@/components/SupabaseAuthProvider";
 import MemorySidebar from "@/components/MemorySidebar";
 import ChatWindow from "@/components/ChatWindow";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function ChatPage() {
-    const { data: session, status } = useSession();
+    const { user, loading } = useSupabaseAuth();
     const router = useRouter();
     const [userId, setUserId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
-        if (status === "unauthenticated") {
-            router.push("/");
+        if (loading) return;
+        if (!user) {
+            router.replace("/login");
             return;
         }
+        setUserId(user.id);
 
-        if (status === "authenticated" && session?.user) {
-            setUserId((session.user as any).id);
+        fetch("/api/seed", { method: "POST" }).catch((err) =>
+            console.error("Failed to seed campus data:", err)
+        );
+    }, [loading, user, router]);
 
-            // Seed campus knowledge (idempotent — skips if already seeded)
-            fetch("/api/seed", { method: "POST" }).catch((err) =>
-                console.error("Failed to seed campus data:", err)
-            );
-        }
-    }, [status, session, router]);
-
-    if (status === "loading" || !userId) {
+    if (loading || !userId) {
         return (
             <div className="h-screen flex items-center justify-center bg-black text-white">
                 <div className="flex flex-col items-center gap-4">

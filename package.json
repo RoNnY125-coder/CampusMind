@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.100.1",
     "@vectorize-io/hindsight-client": "^0.4.19",
     "ai": "^6.0.116",
@@ -21,7 +22,6 @@
     "groq-sdk": "^1.1.1",
     "lucide-react": "^0.577.0",
     "next": "^16.2.0",
-    "next-auth": "^4.24.13",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^3.5.0"
