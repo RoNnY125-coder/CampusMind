@@ -1,7 +1,5 @@
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { supabaseServer } from './supabase-server';
-import { NEXTAUTH_SECRET } from './env';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -14,6 +12,7 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email) return null;
 
+        const { supabaseServer } = await import('./supabase-server');
         const db = supabaseServer();
 
         let { data: student } = await db
@@ -70,5 +69,5 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  secret: NEXTAUTH_SECRET(),
+  secret: process.env.NEXTAUTH_SECRET,
 };

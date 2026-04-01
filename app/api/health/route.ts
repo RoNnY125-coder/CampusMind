@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server"
 import { retainMemory, recallMemories } from "@/lib/hindsight"
-import { GROQ_API_KEY, HINDSIGHT_BASE_URL } from "@/lib/env";
+import { env } from "@/lib/env";
 
 export async function GET() {
     let groqConfigured = false;
     try {
-        groqConfigured = !!GROQ_API_KEY();
+        groqConfigured = !!env.GROQ_API_KEY;
     } catch {
         groqConfigured = false;
     }
@@ -25,7 +25,7 @@ export async function GET() {
         hindsightConnected: hindsightOk,
         hindsightError: hindsightError || null,
         groqConfigured,
-        baseUrl: HINDSIGHT_BASE_URL(),
+        baseUrl: env.HINDSIGHT_BASE_URL,
         timestamp: new Date().toISOString()
     })
 }

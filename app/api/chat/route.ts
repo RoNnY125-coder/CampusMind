@@ -6,7 +6,7 @@ import Groq from "groq-sdk"
 import { recallMemories, retainMemory, studentBank, CAMPUS_BANK } from '@/lib/hindsight';
 import { buildSystemPrompt } from '@/lib/groq';
 import { getOrCreateSession, getSessionMessages, saveMessage, updateSessionTitle } from '@/lib/chat-db';
-import { GROQ_API_KEY } from '@/lib/env';
+import { env } from '@/lib/env';
 import type { ChatRequest } from '@/lib/types';
 
 export async function POST(request: Request) {
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const groq = new Groq({ apiKey: GROQ_API_KEY() });
+    const groq = new Groq({ apiKey: env.GROQ_API_KEY });
     const session = await getOrCreateSession(userId, sessionId);
 
     if (!sessionId) {
