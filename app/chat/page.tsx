@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import MemorySidebar from "@/components/MemorySidebar";
 import ChatWindow from "@/components/ChatWindow";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function ChatPage() {
     const { data: session, status } = useSession();
@@ -30,9 +31,9 @@ export default function ChatPage() {
 
     if (status === "loading" || !userId) {
         return (
-            <div className="h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 text-white">
+            <div className="h-screen flex items-center justify-center bg-black text-white">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
+                    <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
                     <p>Loading CampusMind...</p>
                 </div>
             </div>
@@ -40,15 +41,20 @@ export default function ChatPage() {
     }
 
     return (
-        <div className="flex h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 overflow-hidden relative">
-            {/* Left sidebar */}
+        <ErrorBoundary>
+        <div className="flex h-screen bg-black overflow-hidden relative">
             <aside 
-                className={`absolute md:relative z-20 w-80 h-full bg-slate-950/95 md:bg-transparent backdrop-blur-md transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} shrink-0 border-r border-purple-500/20 shadow-xl md:shadow-none`}
+                className={`absolute md:relative z-20 w-80 h-full bg-gray-900/95 md:bg-transparent backdrop-blur-md transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} shrink-0 border-r border-white/10 shadow-xl md:shadow-none`}
             >
-                <MemorySidebar userId={userId} />
+                <MemorySidebar
+                    userId={userId}
+                    onSessionSelect={(session) => {
+                        router.push(`/chat?session=${session}`);
+                        setIsSidebarOpen(false);
+                    }}
+                />
             </aside>
 
-            {/* Overlay for mobile */}
             {isSidebarOpen && (
                 <div 
                     className="fixed inset-0 bg-black/60 z-10 md:hidden backdrop-blur-sm transition-opacity" 
@@ -56,10 +62,10 @@ export default function ChatPage() {
                 />
             )}
 
-            {/* Main chat area */}
             <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
                 <ChatWindow userId={userId} onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
             </main>
         </div>
+        </ErrorBoundary>
     );
 }

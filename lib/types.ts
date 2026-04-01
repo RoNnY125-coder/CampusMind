@@ -44,6 +44,7 @@ export interface ChatRequest {
   message: string;
   userId: string;
   history: ChatMessage[];
+  sessionId?: string;
 }
 
 export interface MemoryResponse {

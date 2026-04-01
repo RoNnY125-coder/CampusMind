@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { retainMemory, studentBank } from '@/lib/hindsight';
-import { supabase } from '@/lib/supabase';
+import { supabaseServer } from '@/lib/supabase-server';
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     console.log(`🎓 Onboarding student: ${name} (${userId})`);
 
     // Upsert user profile in Supabase
-    const { error: dbError } = await supabase
+    const { error: dbError } = await supabaseServer()
         .from('students')
         .upsert({ 
             id: userId,

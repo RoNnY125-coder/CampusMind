@@ -1,10 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from './env';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.warn('⚠️  Supabase URL or Anon Key is missing. Check your .env.local file.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const safeUrl = SUPABASE_URL || "https://placeholder.supabase.co";
+const safeAnonKey = SUPABASE_ANON_KEY || "placeholder-anon-key";
+
+export const supabase = createClient(safeUrl, safeAnonKey);

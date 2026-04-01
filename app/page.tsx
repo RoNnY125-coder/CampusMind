@@ -1,268 +1,149 @@
 "use client";
 
-import { useSession, signIn } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Brain, Zap, Lock, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function LandingPage() {
     const router = useRouter();
     const { data: session, status } = useSession();
-    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-    const [isHovered, setIsHovered] = useState(false);
     const [isCheckingUser, setIsCheckingUser] = useState(false);
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            setMousePosition({ x: e.clientX, y: e.clientY });
-        };
-        window.addEventListener("mousemove", handleMouseMove);
-        return () => window.removeEventListener("mousemove", handleMouseMove);
-    }, []);
 
     const handleGetStarted = async () => {
         if (status === "unauthenticated") {
-            signIn("google");
+            router.push("/login");
         } else if (status === "authenticated" && session?.user) {
             setIsCheckingUser(true);
             try {
-                const { data, error } = await supabase
+                const { data } = await supabase
                     .from('students')
                     .select('has_onboarded')
                     .eq('id', (session.user as any).id)
                     .single();
-                
-                if (data?.has_onboarded) {
-                    router.push("/chat");
-                } else {
-                    router.push("/onboard");
-                }
-            } catch (error) {
-                console.error("Error checking user onboarding status", error);
-                router.push("/onboard"); // default to onboard if error
+                router.push(data?.has_onboarded ? "/chat" : "/onboard");
+            } catch {
+                router.push("/onboard");
             } finally {
                 setIsCheckingUser(false);
             }
         }
     };
 
+    const features = [
+        { icon: Brain, label: "Memory-First", desc: "Remembers everything about your campus journey" },
+        { icon: Zap, label: "Instant", desc: "Powered by LLaMA 3.3 70B via Groq" },
+        { icon: Lock, label: "Private", desc: "Your data, your memory bank, always" },
+    ];
+
     return (
-        <div className="relative w-full min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 overflow-hidden">
-            {/* Animated gradient orbs */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-2000"></div>
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse animation-delay-4000"></div>
-            </div>
-
-            {/* Mouse follower glow */}
+        <div className="relative min-h-screen bg-black overflow-hidden">
+            <div className="absolute inset-0 bg-grid opacity-40 pointer-events-none" />
             <div
-                className="fixed w-96 h-96 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full filter blur-3xl opacity-0 pointer-events-none transition-opacity duration-300"
+                className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full pointer-events-none"
                 style={{
-                    left: `${mousePosition.x - 192}px`,
-                    top: `${mousePosition.y - 192}px`,
-                    opacity: isHovered ? 0.15 : 0,
+                    background: "radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 70%)",
+                    animation: "drift 20s ease-in-out infinite",
                 }}
-            ></div>
+            />
+            <div
+                className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full pointer-events-none"
+                style={{
+                    background: "radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 70%)",
+                    animation: "drift 20s ease-in-out infinite -10s",
+                }}
+            />
 
-            {/* Content */}
-            <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-20">
-                {/* Floating cards background */}
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    {/* Floating card 1 */}
-                    <div className="absolute top-20 right-10 w-64 h-40 bg-gradient-to-br from-purple-500/10 to-indigo-500/10 backdrop-blur-md border border-purple-400/20 rounded-2xl transform -rotate-12 animate-float opacity-60 hover:opacity-100 transition-opacity"></div>
-                    
-                    {/* Floating card 2 */}
-                    <div className="absolute bottom-32 left-10 w-72 h-48 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur-md border border-blue-400/20 rounded-2xl transform rotate-12 animate-float animation-delay-2000 opacity-60 hover:opacity-100 transition-opacity"></div>
-                    
-                    {/* Floating card 3 */}
-                    <div className="absolute top-1/3 right-1/4 w-56 h-32 bg-gradient-to-br from-pink-500/10 to-purple-500/10 backdrop-blur-md border border-pink-400/20 rounded-2xl transform -rotate-6 animate-float animation-delay-4000 opacity-40 hover:opacity-100 transition-opacity"></div>
+            <nav className="relative z-10 flex items-center justify-between px-8 py-6 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                    <Brain className="text-blue-500 w-5 h-5" />
+                    <span className="text-white font-semibold tracking-tight">CampusMind</span>
                 </div>
+                <button onClick={handleGetStarted} className="text-sm text-gray-300 hover:text-white transition-colors">
+                    Sign In
+                </button>
+            </nav>
 
-                {/* Main content */}
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
+            <main className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-80px)] px-4 text-center">
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                    className="flex flex-col items-center gap-8 text-center max-w-2xl"
+                    transition={{ duration: 0.5 }}
+                    className="mb-8 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/5 text-blue-400 text-xs font-medium tracking-wide"
                 >
-                    {/* Icon with glow */}
-                    <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full filter blur-2xl opacity-60 animate-pulse"></div>
-                        <motion.div 
-                            animate={{ y: [-10, 0, -10] }}
-                            transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                            className="relative text-8xl drop-shadow-2xl"
-                        >🎓</motion.div>
-                    </div>
-
-                    {/* Title with gradient */}
-                    <div className="space-y-4">
-                        <motion.h1 
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1, duration: 0.6 }}
-                            className="text-6xl md:text-7xl font-black bg-gradient-to-r from-purple-300 via-pink-300 to-indigo-300 bg-clip-text text-transparent drop-shadow-lg"
-                        >
-                            CampusMind
-                        </motion.h1>
-                        <div className="h-1 w-32 mx-auto bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 rounded-full animate-pulse"></div>
-                    </div>
-
-                    {/* Description */}
-                    <motion.p 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2, duration: 0.6 }}
-                        className="text-lg md:text-xl text-gray-300 max-w-lg leading-relaxed"
-                    >
-                        Meet your <span className="text-purple-300 font-semibold">AI-powered campus companion</span> that learns, remembers, and grows with you. Experience intelligence that understands your journey.
-                    </motion.p>
-
-                    {/* Stats cards */}
-                    <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3, duration: 0.6 }}
-                        className="grid grid-cols-3 gap-4 my-6 w-full max-w-md"
-                    >
-                        <motion.div whileHover={{ scale: 1.1 }} className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 backdrop-blur-lg border border-purple-400/30 rounded-xl p-4 hover:from-purple-500/40 hover:to-indigo-500/40 transition-all duration-300">
-                            <div className="text-2xl font-bold text-purple-300">24/7</div>
-                            <div className="text-xs text-gray-400">Available</div>
-                        </motion.div>
-                        <motion.div whileHover={{ scale: 1.1 }} className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-lg border border-blue-400/30 rounded-xl p-4 hover:from-blue-500/40 hover:to-cyan-500/40 transition-all duration-300">
-                            <div className="text-2xl font-bold text-blue-300">∞</div>
-                            <div className="text-xs text-gray-400">Memory</div>
-                        </motion.div>
-                        <motion.div whileHover={{ scale: 1.1 }} className="bg-gradient-to-br from-pink-500/20 to-rose-500/20 backdrop-blur-lg border border-pink-400/30 rounded-xl p-4 hover:from-pink-500/40 hover:to-rose-500/40 transition-all duration-300">
-                            <div className="text-2xl font-bold text-pink-300">100%</div>
-                            <div className="text-xs text-gray-400">Personalized</div>
-                        </motion.div>
-                    </motion.div>
-
-                    {/* CTA Button with floating effect */}
-                    <motion.button
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4, duration: 0.6 }}
-                        onClick={handleGetStarted}
-                        onMouseEnter={() => setIsHovered(true)}
-                        onMouseLeave={() => setIsHovered(false)}
-                        disabled={status === "loading" || isCheckingUser}
-                        className="relative mt-8 group"
-                    >
-                        {/* Button glow */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 rounded-full blur-lg opacity-75 group-hover:opacity-100 transition-opacity duration-300 animate-pulse"></div>
-                        
-                        {/* Button */}
-                        <div className="relative bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:via-indigo-500 hover:to-purple-500 text-white px-10 py-4 rounded-full text-lg font-bold transition-all duration-300 transform hover:scale-110 hover:shadow-2xl cursor-pointer flex items-center gap-3 group-hover:gap-4 disabled:opacity-50">
-                            <span>{status === "loading" || isCheckingUser ? "Loading..." : "Get Started"}</span>
-                            {!isCheckingUser && status !== "loading" && <span className="text-xl transform group-hover:translate-x-1 transition-transform">→</span>}
-                        </div>
-                    </motion.button>
-
-                    {/* Floating features */}
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.5, duration: 0.6 }}
-                        className="mt-16 text-sm text-gray-400"
-                    >
-                        ✨ Join thousands of students already using CampusMind
-                    </motion.div>
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                    AI-Powered · Memory-First · Campus-Native
                 </motion.div>
 
-                {/* Animated background elements */}
-                <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none"></div>
-            </div>
+                <motion.h1
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.1 }}
+                    className="text-5xl md:text-7xl font-bold text-white tracking-tight leading-none mb-6"
+                >
+                    Your campus, <span className="gradient-text">remembered.</span>
+                </motion.h1>
 
-            {/* Global animations */}
-            <style jsx>{`
-                @keyframes float {
-                    0%, 100% {
-                        transform: translateY(0px) rotate(0deg);
-                    }
-                    50% {
-                        transform: translateY(-20px) rotate(2deg);
-                    }
-                }
+                <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="text-gray-400 text-lg max-w-xl leading-relaxed mb-10"
+                >
+                    CampusMind is an AI assistant that learns your journey - your courses, interests, events, and goals - and gets smarter every conversation.
+                </motion.p>
 
-                @keyframes bounce-slow {
-                    0%, 100% {
-                        transform: translateY(0);
-                    }
-                    50% {
-                        transform: translateY(-10px);
-                    }
-                }
+                <motion.button
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.3 }}
+                    onClick={handleGetStarted}
+                    disabled={status === "loading" || isCheckingUser}
+                    className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl text-white font-semibold text-base transition-all duration-200 disabled:opacity-50 shadow-glow-blue hover:shadow-glow-blue-lg"
+                    style={{ background: "linear-gradient(135deg, #2563eb, #06b6d4)" }}
+                >
+                    {status === "loading" || isCheckingUser ? "Loading..." : "Get Started"}
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </motion.button>
 
-                @keyframes fade-in {
-                    from {
-                        opacity: 0;
-                        transform: translateY(20px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.4 }}
+                    className="mt-20 grid grid-cols-3 gap-4 max-w-md w-full"
+                >
+                    {[
+                        { val: "24/7", label: "Available" },
+                        { val: "∞", label: "Memory" },
+                        { val: "100%", label: "Private" },
+                    ].map((stat) => (
+                        <div key={stat.label} className="border border-white/10 rounded-xl p-4 bg-gray-800/40 hover:border-blue-500/30 transition-colors">
+                            <div className="text-2xl font-bold text-white">{stat.val}</div>
+                            <div className="text-gray-400 text-xs mt-0.5">{stat.label}</div>
+                        </div>
+                    ))}
+                </motion.div>
 
-                .animate-float {
-                    animation: float 6s ease-in-out infinite;
-                }
-
-                .animate-bounce-slow {
-                    animation: bounce-slow 3s ease-in-out infinite;
-                }
-
-                .animate-fade-in {
-                    animation: fade-in 0.6s ease-out forwards;
-                }
-
-                .animate-fade-in-delay-1 {
-                    animation: fade-in 0.6s ease-out 0.1s forwards;
-                    opacity: 0;
-                }
-
-                .animate-fade-in-delay-2 {
-                    animation: fade-in 0.6s ease-out 0.2s forwards;
-                    opacity: 0;
-                }
-
-                .animate-fade-in-delay-3 {
-                    animation: fade-in 0.6s ease-out 0.3s forwards;
-                    opacity: 0;
-                }
-
-                .animate-fade-in-delay-4 {
-                    animation: fade-in 0.6s ease-out 0.4s forwards;
-                    opacity: 0;
-                }
-
-                .animate-fade-in-delay-5 {
-                    animation: fade-in 0.6s ease-out 0.5s forwards;
-                    opacity: 0;
-                }
-
-                .animate-fade-in-delay-6 {
-                    animation: fade-in 0.6s ease-out 0.6s forwards;
-                    opacity: 0;
-                }
-
-                .animate-fade-in-delay-7 {
-                    animation: fade-in 0.6s ease-out 0.7s forwards;
-                    opacity: 0;
-                }
-
-                .animation-delay-2000 {
-                    animation-delay: 2s;
-                }
-
-                .animation-delay-4000 {
-                    animation-delay: 4s;
-                }
-            `}</style>
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.6, delay: 0.5 }}
+                    className="mt-12 flex flex-wrap justify-center gap-3"
+                >
+                    {features.map(({ icon: Icon, label, desc }) => (
+                        <div
+                            key={label}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/10 bg-gray-800/40 text-sm text-gray-300 hover:border-blue-500/30 hover:text-white transition-all"
+                        >
+                            <Icon className="w-4 h-4 text-blue-400" />
+                            <span className="font-medium text-white">{label}</span>
+                            <span className="text-gray-500 hidden sm:inline">- {desc}</span>
+                        </div>
+                    ))}
+                </motion.div>
+            </main>
         </div>
     );
 }

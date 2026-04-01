@@ -1,57 +1,52 @@
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-
-// Demo users for testing
-const demoUsers = [
-  {
-    id: '1',
-    email: 'rahul@student.edu',
-    password: 'password123',
-    name: 'Rahul Sharma',
-    hasOnboarded: true,
-  },
-  {
-    id: '2',
-    email: 'priya@student.edu',
-    password: 'password123',
-    name: 'Priya Gupta',
-    hasOnboarded: true,
-  },
-  {
-    id: '3',
-    email: 'arjun@student.edu',
-    password: 'password123',
-    name: 'Arjun Singh',
-    hasOnboarded: false,
-  },
-];
+import { supabaseServer } from './supabase-server';
+import { NEXTAUTH_SECRET } from './env';
 
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
+      name: 'Email',
       credentials: {
-        email: { label: 'Email', type: 'email' },
+        email: { label: 'Email', type: 'email', placeholder: 'you@student.edu' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
+        if (!credentials?.email) return null;
+
+        const db = supabaseServer();
+
+        let { data: student } = await db
+          .from('students')
+          .select('id, email, name, has_onboarded')
+          .eq('email', credentials.email)
+          .single();
+
+        if (!student && process.env.NODE_ENV === 'development') {
+          const { data: newStudent, error } = await db
+            .from('students')
+            .insert({
+              email: credentials.email,
+              name: credentials.email.split('@')[0],
+              has_onboarded: false,
+            })
+            .select('id, email, name, has_onboarded')
+            .single();
+
+          if (error) {
+            console.error('[auth] Failed to create student:', error);
+            return null;
+          }
+          student = newStudent;
         }
 
-        const user = demoUsers.find(
-          (u) => u.email === credentials.email && u.password === credentials.password
-        );
-
-        if (!user) {
-          return null;
-        }
+        if (!student) return null;
 
         return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          hasOnboarded: user.hasOnboarded,
+          id: student.id,
+          email: student.email,
+          name: student.name ?? credentials.email,
+          hasOnboarded: student.has_onboarded,
         };
       },
     }),
@@ -75,5 +70,5 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: NEXTAUTH_SECRET(),
 };

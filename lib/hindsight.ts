@@ -1,15 +1,13 @@
 import { HindsightClient } from '@vectorize-io/hindsight-client';
 import type { MemoryUnit } from './types';
+import { HINDSIGHT_API_KEY, HINDSIGHT_BASE_URL } from './env';
 
 export const CAMPUS_BANK = 'campus_knowledge';
 export const studentBank = (userId: string) => `student_${userId}`;
 
-const BASE_URL = process.env.HINDSIGHT_BASE_URL || 'https://api.hindsight.vectorize.io';
-const API_KEY = process.env.HINDSIGHT_API_KEY || '';
-
 const client = new HindsightClient({
-  baseUrl: BASE_URL,
-  apiKey: API_KEY,
+  baseUrl: HINDSIGHT_BASE_URL(),
+  apiKey: HINDSIGHT_API_KEY(),
 });
 
 export async function retainMemory(

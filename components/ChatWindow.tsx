@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, KeyboardEvent } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { Brain, Send, Menu } from "lucide-react";
 
 interface Message {
     role: "user" | "assistant";
@@ -20,16 +22,26 @@ const SUGGESTIONS = [
 ];
 
 export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps) {
+    const searchParams = useSearchParams();
+    const urlSessionId = searchParams.get("session");
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isMounted, setIsMounted] = useState(false);
+    const [sessionId, setSessionId] = useState<string | null>(urlSessionId);
+
+    useEffect(() => {
+        if (urlSessionId) setSessionId(urlSessionId);
+    }, [urlSessionId]);
 
     // Hydrate chat history from local storage
     useEffect(() => {
         setIsMounted(true);
         if (!userId) return;
-        const saved = localStorage.getItem(`campusmind_chat_${userId}`);
+        setMessages([]);
+        const savedSession = localStorage.getItem(`campusmind_session_${userId}`);
+        if (!urlSessionId && savedSession) setSessionId(savedSession);
+        const saved = localStorage.getItem(`campusmind_chat_${userId}_${urlSessionId ?? savedSession ?? "default"}`);
         if (saved) {
             try {
                 setMessages(JSON.parse(saved));
@@ -37,7 +49,7 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                 console.error("Failed to load chat history", e);
             }
         }
-    }, [userId]);
+    }, [userId, urlSessionId]);
 
     // Persist chat history to local storage
     useEffect(() => {
@@ -45,8 +57,10 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
         
         // Don't save empty placeholder assistant messages
         const savable = messages.filter(m => !(m.role === "assistant" && m.content === ""));
-        localStorage.setItem(`campusmind_chat_${userId}`, JSON.stringify(savable));
-    }, [messages, userId, isMounted]);
+        const key = `campusmind_chat_${userId}_${sessionId ?? "default"}`;
+        localStorage.setItem(key, JSON.stringify(savable));
+        if (sessionId) localStorage.setItem(`campusmind_session_${userId}`, sessionId);
+    }, [messages, userId, isMounted, sessionId]);
 
     const bottomRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -80,16 +94,14 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
             setIsLoading(true);
 
             try {
-                // Determine the valid history to send (exclude any blank trailing assistant messages)
-                const conversationHistory = messages.filter(m => !(m.role === "assistant" && m.content === ""));
-                
                 const response = await fetch("/api/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         message: text,
                         userId,
-                        history: conversationHistory,
+                        history: [],
+                        sessionId,
                     }),
                 });
 
@@ -104,12 +116,38 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
+                const xSessionId = response.headers.get("X-Session-Id");
+                if (xSessionId && !sessionId) {
+                    setSessionId(xSessionId);
+                    localStorage.setItem(`campusmind_session_${userId}`, xSessionId);
+                }
+
+                let metaHandled = false;
+                let streamBuffer = "";
 
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
-                    const chunk = decoder.decode(value, { stream: true });
+                    let chunk = decoder.decode(value, { stream: true });
+                    if (!metaHandled) {
+                        streamBuffer += chunk;
+                        const marker = streamBuffer.indexOf("\n__META_END__\n");
+                        if (marker === -1) continue;
+                        const metaRaw = streamBuffer.slice(0, marker);
+                        chunk = streamBuffer.slice(marker + "\n__META_END__\n".length);
+                        streamBuffer = "";
+                        metaHandled = true;
+                        try {
+                            const meta = JSON.parse(metaRaw) as { sessionId?: string };
+                            if (meta.sessionId && !sessionId) {
+                                setSessionId(meta.sessionId);
+                                localStorage.setItem(`campusmind_session_${userId}`, meta.sessionId);
+                            }
+                        } catch {
+                            // ignore meta parsing failure, stream still works
+                        }
+                    }
 
                     setMessages((prev) => {
                         const updated = [...prev];
@@ -157,62 +195,42 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
         messages[messages.length - 1].content === "";
 
     return (
-        <div className="h-screen flex flex-col bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950">
-            <style>{`
-                @keyframes slide-up {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                @keyframes fade-in {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                .animate-slide-up {
-                    animation: slide-up 0.3s ease-out;
-                }
-                .animate-fade-in {
-                    animation: fade-in 0.5s ease-out;
-                }
-            `}</style>
-
-            {/* Header */}
-            <header className="bg-gradient-to-r from-slate-900/80 to-purple-900/80 backdrop-blur-md border-b border-purple-500/20 px-4 md:px-6 py-4 flex items-center justify-between shrink-0">
+        <div className="h-screen flex flex-col bg-black">
+            <header className="bg-gray-900 border-b border-white/10 px-4 md:px-6 py-4 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
                     {onToggleSidebar && (
                         <button 
                             onClick={onToggleSidebar} 
-                            className="md:hidden text-gray-300 hover:text-white p-1.5 rounded-lg bg-purple-900/30 hover:bg-purple-800/50 transition-colors border border-purple-500/20"
+                            className="md:hidden text-gray-300 hover:text-white p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors border border-white/10"
                             aria-label="Toggle Menu"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                            <Menu className="w-5 h-5" />
                         </button>
                     )}
-                    <span className="text-white font-bold text-lg md:text-xl bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent flex items-center gap-2">
-                        <span className="hidden sm:inline">🎓</span> CampusMind
+                    <span className="text-white font-semibold text-lg md:text-xl flex items-center gap-2">
+                        <Brain className="w-5 h-5 text-blue-500" /> CampusMind
                     </span>
                 </div>
-                <span className="bg-gradient-to-r from-purple-600/80 to-indigo-600/80 backdrop-blur-md text-purple-100 text-xs rounded-full px-3 py-1 border border-purple-400/30">
+                <span className="bg-gray-800 text-blue-300 text-xs rounded-full px-3 py-1 border border-blue-500/30">
                     AI-powered by Hindsight
                 </span>
             </header>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 bg-gray-950">
                 <AnimatePresence>
                 {messages.length === 0 ? (
-                    /* Empty state */
                     <motion.div 
                         initial={{ opacity: 0 }} 
                         animate={{ opacity: 1 }} 
                         exit={{ opacity: 0 }}
                         className="flex flex-col items-center justify-center h-full gap-8"
                     >
-                        <span className="text-7xl animate-bounce" style={{animationDuration: '3s'}}>🎓</span>
                         <div>
-                            <p className="text-gray-300 text-2xl text-center font-light">
+                            <p className="text-white text-2xl text-center font-medium">
                                 Welcome to CampusMind
                             </p>
-                            <p className="text-gray-500 text-sm text-center mt-2">
+                            <p className="text-gray-400 text-sm text-center mt-2">
                                 Your AI campus assistant
                             </p>
                         </div>
@@ -221,7 +239,7 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                                 <button
                                     key={chip}
                                     onClick={() => handleChipClick(chip)}
-                                    className="bg-gradient-to-r from-purple-600/40 to-indigo-600/40 backdrop-blur-md rounded-full px-5 py-2.5 text-sm text-gray-200 cursor-pointer hover:from-purple-600/60 hover:to-indigo-600/60 transition-all border border-purple-500/30 hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/20 animate-slide-up"
+                                    className="rounded-full px-5 py-2.5 text-sm text-gray-200 cursor-pointer transition-all border border-white/10 bg-gray-800/60 hover:border-blue-500/30"
                                     style={{animationDelay: `${idx * 100}ms`}}
                                 >
                                     {chip}
@@ -230,9 +248,7 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                         </div>
                     </motion.div>
                 ) : (
-                    /* Message bubbles */
                     messages.map((msg, i) => {
-                        // Skip rendering the empty assistant placeholder (typing indicator shown separately)
                         if (
                             msg.role === "assistant" &&
                             msg.content === "" &&
@@ -249,21 +265,11 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                                 >
                                     <div>
                                         <p className="text-gray-500 text-xs mb-2 font-medium">CampusMind</p>
-                                        <div className="bg-gradient-to-r from-slate-800/60 to-purple-900/40 backdrop-blur-md rounded-2xl rounded-tl-sm px-4 py-3 border border-purple-500/20 shadow-lg">
-                                            {/* Typing dots */}
-                                            <div className="flex items-center gap-1.5">
-                                                <span
-                                                    className="w-2.5 h-2.5 bg-gradient-to-r from-purple-400 to-indigo-400 rounded-full animate-bounce"
-                                                    style={{ animationDelay: "0ms" }}
-                                                />
-                                                <span
-                                                    className="w-2.5 h-2.5 bg-gradient-to-r from-purple-400 to-indigo-400 rounded-full animate-bounce"
-                                                    style={{ animationDelay: "150ms" }}
-                                                />
-                                                <span
-                                                    className="w-2.5 h-2.5 bg-gradient-to-r from-purple-400 to-indigo-400 rounded-full animate-bounce"
-                                                    style={{ animationDelay: "300ms" }}
-                                                />
+                                        <div className="bg-gray-800 border border-white/10 rounded-2xl rounded-bl-sm px-4 py-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="typing-dot" />
+                                                <span className="typing-dot" />
+                                                <span className="typing-dot" />
                                             </div>
                                         </div>
                                     </div>
@@ -280,7 +286,7 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                                     transition={{ duration: 0.3 }}
                                     className="flex justify-end"
                                 >
-                                    <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl rounded-tr-sm px-5 py-3.5 max-w-xs ml-auto text-sm shadow-lg shadow-purple-500/30">
+                                    <div className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-2xl rounded-br-sm px-5 py-3.5 max-w-xs ml-auto text-sm">
                                         {msg.content}
                                     </div>
                                 </motion.div>
@@ -297,7 +303,7 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                             >
                                 <div>
                                     <p className="text-gray-500 text-xs mb-2 font-medium">CampusMind</p>
-                                    <div className="bg-gradient-to-r from-slate-800/60 to-purple-900/40 backdrop-blur-md text-gray-100 rounded-2xl rounded-tl-sm px-5 py-3.5 max-w-sm text-sm leading-relaxed whitespace-pre-wrap border border-purple-500/20 shadow-lg">
+                                    <div className="bg-gray-800 border border-white/10 text-gray-100 rounded-2xl rounded-bl-sm px-5 py-3.5 max-w-sm text-sm leading-relaxed whitespace-pre-wrap">
                                         {msg.content}
                                     </div>
                                 </div>
@@ -310,7 +316,7 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
             </div>
 
             {/* Input Bar */}
-            <div className="bg-gradient-to-r from-slate-900/80 to-purple-900/80 backdrop-blur-md border-t border-purple-500/20 p-3 md:p-4 shrink-0 pb-safe">
+            <div className="bg-gray-900 border-t border-white/10 p-3 md:p-4 shrink-0 pb-safe">
                 <div className="flex gap-2 md:gap-3 items-end">
                     <textarea
                         ref={textareaRef}
@@ -320,15 +326,15 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                         onKeyDown={handleKeyDown}
                         disabled={isLoading}
                         placeholder="Message CampusMind..."
-                        className="bg-purple-900/30 border border-purple-500/30 text-white rounded-2xl px-4 py-3 min-h-[44px] max-h-32 flex-1 resize-none outline-none focus:border-purple-500/60 focus:shadow-lg focus:shadow-purple-500/20 text-sm md:text-base disabled:opacity-40 transition-all placeholder-gray-500"
+                        className="bg-gray-800 border border-white/10 text-white rounded-2xl px-4 py-3 min-h-[44px] max-h-32 flex-1 resize-none outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 text-sm md:text-base disabled:opacity-40 transition-all placeholder-gray-500"
                     />
                     <button
                         onClick={() => handleSend()}
                         disabled={isLoading || !input.trim()}
-                        className="h-[44px] flex items-center justify-center bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-40 text-white rounded-2xl px-4 md:px-6 py-2.5 font-medium text-sm md:text-base transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 disabled:shadow-none shrink-0"
+                        className="h-[44px] flex items-center justify-center bg-gradient-blue disabled:opacity-40 text-white rounded-2xl px-4 md:px-6 py-2.5 font-medium text-sm md:text-base transition-all shadow-glow-blue hover:shadow-glow-blue-lg disabled:shadow-none shrink-0"
                     >
                         <span className="hidden md:inline">Send</span>
-                        <svg className="md:hidden" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        <Send className="md:hidden w-4 h-4" />
                     </button>
                 </div>
             </div>

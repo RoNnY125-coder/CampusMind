@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { HINDSIGHT_API_KEY, HINDSIGHT_BASE_URL } from "@/lib/env";
 
 export const dynamic = "force-dynamic"
 
@@ -16,12 +17,12 @@ export async function GET(request: Request) {
   if (!userId) return NextResponse.json({ error: "userId required" }, { status: 400 })
 
   try {
-    const url = `${process.env.HINDSIGHT_BASE_URL}/v1/default/banks/student_${userId}/memories/list?limit=20`
+    const url = `${HINDSIGHT_BASE_URL()}/v1/default/banks/student_${userId}/memories/list?limit=20`
     console.log("[memory] fetching:", url)
     
     const res = await fetch(url, {
       headers: {
-        "Authorization": `Bearer ${process.env.HINDSIGHT_API_KEY}`,
+        "Authorization": `Bearer ${HINDSIGHT_API_KEY()}`,
         "Content-Type": "application/json"
       },
       cache: "no-store"
