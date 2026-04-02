@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSupabaseAuth } from "@/components/SupabaseAuthProvider";
+import { supabase } from "@/lib/supabase";
+import { ensureStudentProfile } from "@/lib/auth-helpers";
 
 interface FormData {
   name: string;
@@ -53,10 +55,12 @@ const TOTAL_STEPS = 4;
 
 export default function OnboardPage() {
   const router = useRouter();
-  const { user, loading } = useSupabaseAuth();
+  const { user, session, loading, refreshSession } = useSupabaseAuth();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBooting, setIsBooting] = useState(true);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [formData, setFormData] = useState<FormData>({
     name: "",
     year: "",
@@ -66,9 +70,92 @@ export default function OnboardPage() {
   });
 
   useEffect(() => {
-    if (loading) return;
-    if (!user) router.replace("/login");
-  }, [loading, user, router]);
+    let mounted = true;
+
+    const loadOnboarding = async () => {
+      if (loading) return;
+
+      console.log("[onboard] boot start");
+
+      let activeSession = session;
+      if (!activeSession?.access_token) {
+        console.log("[onboard] no session in context, refreshing");
+        await refreshSession();
+        const {
+          data: { session: nextSession },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.error("[onboard] getSession failed:", sessionError.message);
+        }
+        activeSession = nextSession;
+      }
+
+      if (!activeSession?.access_token || !user) {
+        console.log("[onboard] no active session, redirecting to login");
+        router.replace("/login");
+        return;
+      }
+
+      const startupTasks = await Promise.allSettled([
+        ensureStudentProfile(activeSession.access_token),
+        supabase
+          .from("students")
+          .select("name, year, branch, interests, clubs, has_onboarded")
+          .eq("id", user.id)
+          .maybeSingle(),
+      ]);
+
+      if (!mounted) return;
+
+      const [ensureResult, profileResult] = startupTasks;
+
+      if (ensureResult.status === "rejected" || (ensureResult.status === "fulfilled" && !ensureResult.value.ok)) {
+        console.error("[onboard] ensure profile failed:", ensureResult);
+        setInfo("We could not verify your profile yet. You can still continue.");
+      }
+
+      if (profileResult.status === "rejected") {
+        console.error("[onboard] profile fetch crashed:", profileResult.reason);
+        setInfo("We could not load your saved onboarding data. You can still continue.");
+      } else if (profileResult.value.error) {
+        console.error("[onboard] profile fetch failed:", profileResult.value.error.message);
+        setInfo("We could not load your saved onboarding data. You can still continue.");
+      } else if (profileResult.value.data) {
+        const row = profileResult.value.data;
+        console.log("[onboard] profile loaded", row);
+
+        if (row.has_onboarded) {
+          console.log("[onboard] user already onboarded, redirecting to chat");
+          router.replace("/chat");
+          return;
+        }
+
+        setFormData((prev) => ({
+          ...prev,
+          name: row.name ?? prev.name,
+          year: row.year ?? prev.year,
+          branch: row.branch ?? prev.branch,
+          interests: Array.isArray(row.interests) ? row.interests : prev.interests,
+          clubs: Array.isArray(row.clubs) ? row.clubs : prev.clubs,
+        }));
+      }
+
+      console.log("[onboard] boot complete");
+      setIsBooting(false);
+    };
+
+    void loadOnboarding().catch((err) => {
+      console.error("[onboard] boot fatal:", err);
+      if (!mounted) return;
+      setError("We could not initialize onboarding. Please refresh and try again.");
+      setIsBooting(false);
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [loading, refreshSession, router, session, user]);
 
   const canProceed = () => {
     if (step === 1) return formData.name.trim() !== "" && formData.year !== "";
@@ -100,15 +187,39 @@ export default function OnboardPage() {
     setError("");
 
     try {
-      if (!user?.id) throw new Error("You need to be signed in to continue.");
+      let activeSession = session;
+      if (!activeSession?.access_token) {
+        console.log("[onboard] submit: refreshing session before save");
+        await refreshSession();
+        const {
+          data: { session: nextSession },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.error("[onboard] submit getSession failed:", sessionError.message);
+        }
+        activeSession = nextSession;
+      }
+
+      if (!user?.id || !activeSession?.access_token) {
+        throw new Error("Your session is not ready yet. Please try again.");
+      }
 
       const res = await fetch("/api/onboard", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, userId: user.id }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${activeSession.access_token}`,
+        },
+        body: JSON.stringify({ ...formData }),
       });
 
-      if (!res.ok) throw new Error("Onboarding failed. Please try again.");
+      const payload = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        throw new Error(payload.error ?? "Onboarding failed. Please try again.");
+      }
+
+      console.log("[onboard] submit complete");
       router.push("/chat");
     } catch (err) {
       console.error("[onboard] submit:", err);
@@ -118,7 +229,7 @@ export default function OnboardPage() {
     }
   };
 
-  if (loading || !user) {
+  if (loading || isBooting) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center text-white">
         <div className="flex flex-col items-center gap-4">
@@ -127,6 +238,10 @@ export default function OnboardPage() {
         </div>
       </div>
     );
+  }
+
+  if (!user || !session) {
+    return null;
   }
 
   return (
@@ -166,6 +281,11 @@ export default function OnboardPage() {
             {error && (
               <p className="mt-5 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-300">
                 {error}
+              </p>
+            )}
+            {info && (
+              <p className="mt-5 rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
+                {info}
               </p>
             )}
 
