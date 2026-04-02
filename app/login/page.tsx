@@ -6,6 +6,12 @@ import { useRouter } from "next/navigation";
 import { Brain, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ensureStudentProfile } from "@/lib/auth-helpers";
+import {
+  clearOAuthRedirectPath,
+  getOAuthCallbackUrl,
+  getOAuthErrorMessage,
+  persistOAuthRedirectPath,
+} from "@/lib/auth/oauth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -69,17 +75,38 @@ export default function LoginPage() {
   };
 
   const handleGoogle = async () => {
+    setIsLoading(true);
     setError("");
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const { error: oauthErr } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${origin}/auth/callback?next=/onboard`,
-      },
-    });
-    if (oauthErr) {
-      console.error("[login] Google OAuth:", oauthErr.message);
-      setError(oauthErr.message);
+    setOauthError(null);
+
+    try {
+      persistOAuthRedirectPath("/onboard");
+
+      const { data, error: oauthErr } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: getOAuthCallbackUrl(),
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (oauthErr) {
+        throw oauthErr;
+      }
+
+      if (!data?.url) {
+        throw new Error("Supabase did not return a Google authorization URL.");
+      }
+
+      window.location.assign(data.url);
+      return;
+    } catch (err) {
+      clearOAuthRedirectPath();
+      const message = getOAuthErrorMessage(err);
+      console.error("[login] Google OAuth start failed:", err);
+      setError(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 

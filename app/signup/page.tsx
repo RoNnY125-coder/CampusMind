@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Brain, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ensureStudentProfile } from "@/lib/auth-helpers";
+import {
+  clearOAuthRedirectPath,
+  getOAuthCallbackUrl,
+  getOAuthErrorMessage,
+  persistOAuthRedirectPath,
+} from "@/lib/auth/oauth";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -15,6 +21,13 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+  const [oauthError, setOauthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("error");
+    if (err) setOauthError(decodeURIComponent(err));
+  }, []);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,12 +45,11 @@ export default function SignupPage() {
 
     setIsLoading(true);
     try {
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: `${origin}/auth/callback?next=/onboard`,
+          emailRedirectTo: getOAuthCallbackUrl(),
         },
       });
 
@@ -67,17 +79,38 @@ export default function SignupPage() {
   };
 
   const handleGoogle = async () => {
+    setIsLoading(true);
     setError("");
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const { error: oauthErr } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${origin}/auth/callback?next=/onboard`,
-      },
-    });
-    if (oauthErr) {
-      console.error("[signup] Google OAuth:", oauthErr.message);
-      setError(oauthErr.message);
+    setOauthError(null);
+
+    try {
+      persistOAuthRedirectPath("/onboard");
+
+      const { data, error: oauthErr } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: getOAuthCallbackUrl(),
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (oauthErr) {
+        throw oauthErr;
+      }
+
+      if (!data?.url) {
+        throw new Error("Supabase did not return a Google authorization URL.");
+      }
+
+      window.location.assign(data.url);
+      return;
+    } catch (err) {
+      clearOAuthRedirectPath();
+      const message = getOAuthErrorMessage(err);
+      console.error("[signup] Google OAuth start failed:", err);
+      setError(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -92,9 +125,9 @@ export default function SignupPage() {
         <h1 className="text-2xl font-bold text-white text-center mb-2">Create account</h1>
         <p className="text-gray-400 text-sm text-center mb-8">Sign up with email or Google</p>
 
-        {error && (
+        {(error || oauthError) && (
           <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2 mb-4">
-            {error}
+            {error || oauthError}
           </p>
         )}
         {info && (
