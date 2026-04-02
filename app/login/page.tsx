@@ -82,24 +82,16 @@ export default function LoginPage() {
     try {
       persistOAuthRedirectPath("/onboard");
 
-      const { data, error: oauthErr } = await supabase.auth.signInWithOAuth({
+      const { error: oauthErr } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: getOAuthCallbackUrl(),
-          skipBrowserRedirect: true,
         },
       });
 
       if (oauthErr) {
         throw oauthErr;
       }
-
-      if (!data?.url) {
-        throw new Error("Supabase did not return a Google authorization URL.");
-      }
-
-      window.location.assign(data.url);
-      return;
     } catch (err) {
       clearOAuthRedirectPath();
       const message = getOAuthErrorMessage(err);
