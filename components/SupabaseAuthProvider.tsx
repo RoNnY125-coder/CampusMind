@@ -17,7 +17,7 @@ type AuthContextValue = {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  refreshSession: () => Promise<void>;
+  refreshSession: () => Promise<Session | null>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -30,39 +30,63 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   const refreshSession = useCallback(async () => {
+    console.log("[auth] refreshSession start");
     const { data, error } = await supabase.auth.getSession();
     if (error) {
       console.error("[auth] getSession error:", error.message);
       setSession(null);
       setUser(null);
-      return;
+      return null;
     }
+    console.log("[auth] refreshSession result:", data.session?.user?.id ?? "no-session");
     setSession(data.session);
     setUser(data.session?.user ?? null);
+    return data.session;
   }, [supabase]);
 
   useEffect(() => {
     let mounted = true;
 
+    const settleAuth = (source: string, nextSession: Session | null) => {
+      if (!mounted) return;
+      console.log("[auth] settle:", source, nextSession?.user?.id ?? "no-session");
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      setLoading(false);
+    };
+
     void (async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error("[auth] initial getSession:", error.message);
+      for (let attempt = 1; attempt <= 5; attempt += 1) {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error(`[auth] initial getSession attempt ${attempt}:`, error.message);
+        } else {
+          console.log(
+            `[auth] initial getSession attempt ${attempt}:`,
+            data.session?.user?.id ?? "no-session"
+          );
+        }
+
+        if (data.session) {
+          settleAuth(`initial-getSession-${attempt}`, data.session);
+          return;
+        }
+
+        if (attempt < 5) {
+          await new Promise((resolve) => window.setTimeout(resolve, 250));
+        }
       }
-      if (mounted) {
-        setSession(data.session);
-        setUser(data.session?.user ?? null);
-        setLoading(false);
-      }
+      settleAuth("initial-getSession-timeout", null);
     })();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, nextSession: Session | null) => {
-      setSession(nextSession);
-      setUser(nextSession?.user ?? null);
-      setLoading(false);
-    });
+    } = supabase.auth.onAuthStateChange(
+      (event: AuthChangeEvent, nextSession: Session | null) => {
+        console.log("[auth] onAuthStateChange:", event, nextSession?.user?.id ?? "no-session");
+        settleAuth(`auth-event-${event}`, nextSession);
+      }
+    );
 
     return () => {
       mounted = false;

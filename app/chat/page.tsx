@@ -8,7 +8,7 @@ import ChatWindow from "@/components/ChatWindow";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function ChatPage() {
-    const { user, session, loading } = useSupabaseAuth();
+    const { user, session, loading, refreshSession } = useSupabaseAuth();
     const router = useRouter();
     const [userId, setUserId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -16,17 +16,25 @@ export default function ChatPage() {
     const [bootError, setBootError] = useState("");
 
     useEffect(() => {
-        if (loading) return;
-
-        if (!session || !user) {
-            console.log("[chat] missing session, redirecting to login");
-            router.replace("/login");
-            return;
-        }
-
         let mounted = true;
 
         const bootApp = async () => {
+            if (loading) return;
+
+            console.log("[chat] boot start");
+            let activeSession = session;
+
+            if (!activeSession?.access_token) {
+                console.log("[chat] no session in context, refreshing");
+                activeSession = await refreshSession();
+            }
+
+            if (!activeSession?.access_token || !user) {
+                console.log("[chat] missing session after refresh, redirecting to login");
+                router.replace("/login");
+                return;
+            }
+
             console.log("[chat] session found, booting app");
             setIsBooting(true);
             setBootError("");
@@ -43,7 +51,7 @@ export default function ChatPage() {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: `Bearer ${session.access_token}`,
+                        Authorization: `Bearer ${activeSession.access_token}`,
                     },
                 }).then(async (response) => {
                     if (!response.ok) {
@@ -84,7 +92,7 @@ export default function ChatPage() {
         return () => {
             mounted = false;
         };
-    }, [loading, session, user, router]);
+    }, [loading, refreshSession, router, session, user]);
 
     if (loading || isBooting || !userId) {
         return (
