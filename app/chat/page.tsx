@@ -40,7 +40,8 @@ export default function ChatPage() {
     return (
         <ErrorBoundary>
         <div className="flex h-screen bg-black overflow-hidden relative">
-            <aside 
+            <aside
+                aria-label="Campus navigation and memory sidebar"
                 className={`absolute md:relative z-20 w-80 h-full bg-gray-900/95 md:bg-transparent backdrop-blur-md transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} shrink-0 border-r border-white/10 shadow-xl md:shadow-none`}
             >
                 <MemorySidebar

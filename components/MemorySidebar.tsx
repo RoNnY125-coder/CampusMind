@@ -127,9 +127,9 @@ export default function MemorySidebar({ userId, onSessionSelect }: MemorySidebar
     return (
         <div
             ref={containerRef}
-            className="bg-gray-900 h-full overflow-y-auto p-4 flex flex-col gap-3 border-r border-white/10"
+            className="h-full overflow-y-auto p-4 flex flex-col gap-3 border-r border-white/10 bg-[linear-gradient(180deg,#070707,#0c111b)]"
         >
-            <div className="flex items-center justify-between sticky top-0 bg-gray-900 p-3 rounded-xl z-10 border border-white/10">
+            <div className="flex items-center justify-between sticky top-0 bg-black/70 backdrop-blur-xl p-3 rounded-xl z-10 border border-white/10">
                 <span className="text-white font-semibold text-sm">
                     {tab === "memory" ? "Memory" : "Chats"}
                 </span>
@@ -141,20 +141,20 @@ export default function MemorySidebar({ userId, onSessionSelect }: MemorySidebar
             <div className="grid grid-cols-2 gap-2">
                 <button
                     onClick={() => setTab("memory")}
-                    className={`rounded-lg px-3 py-2 text-sm border transition-colors ${
+                    className={`rounded-xl px-3 py-2 text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
                         tab === "memory"
                             ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
-                            : "bg-gray-800 text-gray-300 border-white/10 hover:border-blue-500/30"
+                            : "bg-gray-900 text-gray-300 border-white/10 hover:border-blue-500/30"
                     }`}
                 >
                     Memory
                 </button>
                 <button
                     onClick={() => setTab("chats")}
-                    className={`rounded-lg px-3 py-2 text-sm border transition-colors ${
+                    className={`rounded-xl px-3 py-2 text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
                         tab === "chats"
                             ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
-                            : "bg-gray-800 text-gray-300 border-white/10 hover:border-blue-500/30"
+                            : "bg-gray-900 text-gray-300 border-white/10 hover:border-blue-500/30"
                     }`}
                 >
                     Chats
@@ -165,7 +165,7 @@ export default function MemorySidebar({ userId, onSessionSelect }: MemorySidebar
                 <>
             {isLoading &&
                 Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="bg-gray-800 rounded-lg p-3 animate-pulse border border-white/10">
+                    <div key={i} className="bg-gray-900 rounded-xl p-3 animate-pulse border border-white/10">
                         <div className="h-3 bg-gray-700 rounded w-3/4 mb-2" />
                         <div className="h-2 bg-gray-700 rounded w-1/2" />
                     </div>
@@ -186,7 +186,7 @@ export default function MemorySidebar({ userId, onSessionSelect }: MemorySidebar
                         className={`rounded-lg p-3.5 text-sm transition-all duration-700 border ${
                             newIds.has(memory.id)
                                 ? "bg-gray-800 border-blue-500/50 memory-new"
-                                : "bg-gray-800 border-white/10 hover:border-blue-500/30"
+                                : "bg-gray-900 border-white/10 hover:border-blue-500/30"
                         }`}
                         style={{animationDelay: `${idx * 50}ms`}}
                     >
@@ -224,7 +224,7 @@ export default function MemorySidebar({ userId, onSessionSelect }: MemorySidebar
                     <button
                         key={session.id}
                         onClick={() => onSessionSelect?.(session.id)}
-                        className="w-full text-left rounded-lg p-3 bg-gray-800 border border-white/10 hover:border-blue-500/30 transition-colors"
+                        className="w-full text-left rounded-xl p-3 bg-gray-900 border border-white/10 hover:border-blue-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     >
                         <p className="text-white text-sm font-medium truncate">{(session.title || "New Chat").slice(0, 40)}</p>
                         <p className="text-gray-400 text-xs mt-1 font-mono flex items-center gap-1">

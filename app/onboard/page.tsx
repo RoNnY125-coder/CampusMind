@@ -1,421 +1,335 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSupabaseAuth } from "@/components/SupabaseAuthProvider";
-import { motion, AnimatePresence } from "framer-motion";
 
 interface FormData {
-    name: string;
-    year: string;
-    branch: string;
-    interests: string[];
-    clubs: string[];
+  name: string;
+  year: string;
+  branch: string;
+  interests: string[];
+  clubs: string[];
 }
 
 const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
-const BRANCHES = ["CSE", "ECE", "Mechanical", "Civil", "IT", "MBA", "Other"];
+const BRANCHES = ["CSE", "ECE", "Mechanical", "Civil", "IT", "MBA", "BBA", "Biotech", "Other"];
 const INTERESTS = [
-    "Coding", "Music", "Sports", "Art",
-    "Finance", "Robotics", "Gaming", "Literature",
-    "Photography", "Dance", "Debate", "Film-making",
+  "Coding",
+  "Music",
+  "Sports",
+  "Art",
+  "Finance",
+  "Robotics",
+  "Gaming",
+  "Literature",
+  "Photography",
+  "Dance",
+  "Debate",
+  "Film-making",
 ];
 const CLUBS: { name: string; description: string }[] = [
-    { name: "Coding Club", description: "Competitive programming, open source & hackathons every Wednesday" },
-    { name: "Photography Club", description: "Weekly photo-walks, equipment provided, annual exhibition" },
-    { name: "Robotics Club", description: "Build bots, compete at state level, Tue & Thu sessions" },
-    { name: "Entrepreneurship Cell (E-Cell)", description: "Pitch nights, startup talks & mentor networking every Monday" },
+  { name: "Coding Club", description: "Competitive programming, open source and hackathon prep." },
+  { name: "Photography Club", description: "Photo walks, editing workshops and annual showcases." },
+  { name: "Robotics Club", description: "Build autonomous bots and compete in inter-college events." },
+  { name: "Entrepreneurship Cell", description: "Startup meetups, pitch nights and founder mentorship." },
+  { name: "AI and ML Society", description: "Model building, paper reading groups and mini projects." },
+  { name: "Cybersecurity Club", description: "CTFs, ethical hacking basics and security labs." },
+  { name: "Debate Society", description: "Public speaking, debate practice and competition coaching." },
+  { name: "Dramatics Club", description: "Stage productions, improv nights and auditions each semester." },
+  { name: "Music Club", description: "Band jams, vocals, instrument circles and event performances." },
+  { name: "Dance Crew", description: "Choreography practice for cultural fests and campus showcases." },
+  { name: "Quiz Club", description: "Weekly quizzes, current affairs and tournament preparation." },
+  { name: "Literary Club", description: "Poetry, creative writing sessions and editorial collaborations." },
+  { name: "Design Club", description: "UI, posters, branding and visual storytelling projects." },
+  { name: "Film and Media Club", description: "Short films, script writing and production workshops." },
+  { name: "Gaming and Esports Club", description: "Casual scrims, tournaments and streaming events." },
+  { name: "NSS Volunteer Cell", description: "Community service drives, awareness campaigns and field work." },
+  { name: "Eco Club", description: "Sustainability projects, campus cleanups and green campaigns." },
+  { name: "Finance and Investment Club", description: "Markets, case studies and investing fundamentals." },
 ];
 
 const TOTAL_STEPS = 4;
 
 export default function OnboardPage() {
-    const router = useRouter();
+  const router = useRouter();
+  const { user, loading } = useSupabaseAuth();
+  const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [formData, setFormData] = useState<FormData>({
+    name: "",
+    year: "",
+    branch: "",
+    interests: [],
+    clubs: [],
+  });
 
-    const [step, setStep] = useState<number>(1);
-    const [formData, setFormData] = useState<FormData>({
-        name: "",
-        year: "",
-        branch: "",
-        interests: [],
-        clubs: [],
-    });
-    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-    const { user, loading } = useSupabaseAuth();
+  useEffect(() => {
+    if (loading) return;
+    if (!user) router.replace("/login");
+  }, [loading, user, router]);
 
-    useEffect(() => {
-        if (loading) return;
-        if (!user) {
-            router.replace("/login");
-        }
-    }, [loading, user, router]);
+  const canProceed = () => {
+    if (step === 1) return formData.name.trim() !== "" && formData.year !== "";
+    if (step === 2) return formData.branch !== "";
+    if (step === 3) return formData.interests.length > 0;
+    return true;
+  };
 
-    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-    const [isHovered, setIsHovered] = useState(false);
+  const toggleInterest = (interest: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      interests: prev.interests.includes(interest)
+        ? prev.interests.filter((item) => item !== interest)
+        : [...prev.interests, interest],
+    }));
+  };
 
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            setMousePosition({ x: e.clientX, y: e.clientY });
-        };
-        window.addEventListener("mousemove", handleMouseMove);
-        return () => window.removeEventListener("mousemove", handleMouseMove);
-    }, []);
+  const toggleClub = (club: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      clubs: prev.clubs.includes(club)
+        ? prev.clubs.filter((item) => item !== club)
+        : [...prev.clubs, club],
+    }));
+  };
 
-    const canProceed = (): boolean => {
-        switch (step) {
-            case 1:
-                return formData.name.trim() !== "" && formData.year !== "";
-            case 2:
-                return formData.branch !== "";
-            case 3:
-                return formData.interests.length > 0;
-            case 4:
-                return true;
-            default:
-                return false;
-        }
-    };
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setError("");
 
-    const handleNext = () => {
-        if (step < TOTAL_STEPS && canProceed()) {
-            setStep(step + 1);
-        }
-    };
+    try {
+      if (!user?.id) throw new Error("You need to be signed in to continue.");
 
-    const handleBack = () => {
-        if (step > 1) {
-            setStep(step - 1);
-        }
-    };
+      const res = await fetch("/api/onboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formData, userId: user.id }),
+      });
 
-    const toggleInterest = (interest: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            interests: prev.interests.includes(interest)
-                ? prev.interests.filter((i) => i !== interest)
-                : [...prev.interests, interest],
-        }));
-    };
-
-    const toggleClub = (club: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            clubs: prev.clubs.includes(club)
-                ? prev.clubs.filter((c) => c !== club)
-                : [...prev.clubs, club],
-        }));
-    };
-
-    const handleSubmit = async () => {
-        setIsSubmitting(true);
-        try {
-            const userId = user?.id;
-            if (!userId) {
-                alert("You need to be signed in to onboard.");
-                return;
-            }
-
-            const res = await fetch("/api/onboard", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...formData, userId }),
-            });
-
-            if (!res.ok) throw new Error("Onboarding failed");
-
-            router.push("/chat");
-        } catch (error) {
-            console.error("Onboard error:", error);
-            alert("Something went wrong, please try again");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    if (loading || !user) {
-        return (
-            <div className="min-h-screen bg-black flex items-center justify-center text-white">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-                    <p className="text-sm text-gray-400">Loading...</p>
-                </div>
-            </div>
-        );
+      if (!res.ok) throw new Error("Onboarding failed. Please try again.");
+      router.push("/chat");
+    } catch (err) {
+      console.error("[onboard] submit:", err);
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setIsSubmitting(false);
     }
+  };
 
+  if (loading || !user) {
     return (
-        <div 
-            className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden"
-            style={{
-                background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #2d1b69 50%, #1e3a8a 75%, #0f172a 100%)",
-            }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-        >
-            <style>{`
-                @keyframes float {
-                    0%, 100% { transform: translateY(0px) rotate(0deg); }
-                    50% { transform: translateY(-20px) rotate(2deg); }
-                }
-                @keyframes float-reverse {
-                    0%, 100% { transform: translateY(0px) rotate(0deg); }
-                    50% { transform: translateY(20px) rotate(-2deg); }
-                }
-                @keyframes pulse-glow {
-                    0%, 100% { opacity: 0.5; }
-                    50% { opacity: 1; }
-                }
-                @keyframes fade-in-up {
-                    from { opacity: 0; transform: translateY(20px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                .animate-float { animation: float 6s ease-in-out infinite; }
-                .animate-float-reverse { animation: float-reverse 7s ease-in-out infinite; }
-                .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
-                .animate-fade-in { animation: fade-in-up 0.6s ease-out forwards; }
-            `}</style>
-
-            {/* Animated Background Orbs */}
-            <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-glow"></div>
-            <div className="absolute -bottom-32 -left-40 w-96 h-96 bg-indigo-600 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-pulse-glow" style={{animationDelay: '1s'}}></div>
-            <div className="absolute top-1/2 left-1/2 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse-glow" style={{animationDelay: '2s'}}></div>
-
-            {/* Mouse Follower Glow */}
-            <div
-                className="fixed w-96 h-96 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full filter blur-3xl opacity-0 pointer-events-none transition-opacity duration-300"
-                style={{
-                    left: `${mousePosition.x - 192}px`,
-                    top: `${mousePosition.y - 192}px`,
-                    opacity: isHovered ? 0.1 : 0,
-                }}
-            ></div>
-
-            {/* Floating Accent Cards */}
-            <div className="absolute top-20 right-10 w-64 h-40 bg-gradient-to-br from-purple-500/10 to-indigo-500/10 backdrop-blur-md border border-purple-400/20 rounded-2xl transform -rotate-12 animate-float opacity-40 pointer-events-none"></div>
-            <div className="absolute bottom-32 left-8 w-52 h-48 bg-gradient-to-br from-indigo-500/10 to-blue-500/10 backdrop-blur-md border border-indigo-400/20 rounded-2xl transform rotate-12 animate-float-reverse opacity-30 pointer-events-none"></div>
-
-            {/* Main Container */}
-            <div className="relative z-10 w-full max-w-2xl">
-                {/* Header */}
-                <div className="text-center mb-8 animate-fade-in" style={{animationDelay: '0.1s'}}>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-indigo-400 to-blue-400 bg-clip-text text-transparent mb-2">
-                        Welcome to CampusMind
-                    </h1>
-                    <p className="text-gray-400">Let's get to know you better</p>
-                </div>
-
-                {/* Card Container */}
-                <div 
-                    className="relative rounded-3xl backdrop-blur-xl border border-purple-500/20 bg-gradient-to-br from-slate-900/80 to-purple-900/40 p-8 shadow-2xl animate-fade-in"
-                    style={{animationDelay: '0.2s'}}
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                >
-                    {/* Glow effect on hover */}
-                    <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-purple-600/0 via-indigo-600/0 to-blue-600/0 opacity-0 transition-opacity duration-300" style={{opacity: isHovered ? 0.1 : 0}}></div>
-
-                    <div className="relative z-10">
-                        {/* Progress Indicator */}
-                        <div className="flex items-center justify-center gap-2 mb-8 animate-fade-in" style={{animationDelay: '0.3s'}}>
-                            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-                                <div
-                                    key={i}
-                                    className={`h-2.5 rounded-full transition-all duration-500 ${i + 1 === step
-                                            ? "w-10 bg-gradient-to-r from-purple-500 to-indigo-500 shadow-lg shadow-purple-500/50"
-                                            : i + 1 < step
-                                                ? "w-8 bg-indigo-500/60"
-                                                : "w-6 bg-gray-700/50"
-                                        }`}
-                                />
-                            ))}
-                        </div>
-                        <p className="text-gray-400 text-xs text-center mb-8 animate-fade-in" style={{animationDelay: '0.4s'}}>
-                            Step <span className="font-bold text-purple-400">{step}</span> of <span className="font-bold text-indigo-400">{TOTAL_STEPS}</span>
-                        </p>
-
-                        {/* Step Content (Animated) */}
-                        <div className="overflow-hidden min-h-[350px]">
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={step}
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    transition={{ duration: 0.3 }}
-                                >
-                                    {/* Step 1 — Tell us about you */}
-                                    {step === 1 && (
-                                        <div className="space-y-5 animate-fade-in">
-                                            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent">
-                                                Tell us about you ✌️
-                                            </h2>
-                                            <div>
-                                                <label className="text-gray-300 text-sm block mb-2 font-medium">
-                                                    Full Name
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Rahul Sharma"
-                                                    value={formData.name}
-                                                    onChange={(e) =>
-                                                        setFormData((prev) => ({ ...prev, name: e.target.value }))
-                                                    }
-                                                    className="w-full bg-purple-900/20 border border-purple-500/30 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500/60 focus:shadow-lg focus:shadow-purple-500/20 placeholder-gray-500 transition-all"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-gray-300 text-sm block mb-2 font-medium">
-                                                    Year
-                                                </label>
-                                                <select
-                                                    value={formData.year}
-                                                    onChange={(e) =>
-                                                        setFormData((prev) => ({ ...prev, year: e.target.value }))
-                                                    }
-                                                    className="w-full bg-purple-900/20 border border-purple-500/30 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500/60 focus:shadow-lg focus:shadow-purple-500/20 appearance-none transition-all"
-                                                >
-                                                    <option value="" disabled>
-                                                        Select your year
-                                                    </option>
-                                                    {YEARS.map((y) => (
-                                                        <option key={y} value={y}>
-                                                            {y}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Step 2 — Your department */}
-                                    {step === 2 && (
-                                        <div className="space-y-5 animate-fade-in">
-                                            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent">
-                                                Your department 🏛️
-                                            </h2>
-                                            <div>
-                                                <label className="text-gray-300 text-sm block mb-2 font-medium">
-                                                    Branch
-                                                </label>
-                                                <select
-                                                    value={formData.branch}
-                                                    onChange={(e) =>
-                                                        setFormData((prev) => ({
-                                                            ...prev,
-                                                            branch: e.target.value,
-                                                        }))
-                                                    }
-                                                    className="w-full bg-purple-900/20 border border-purple-500/30 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500/60 focus:shadow-lg focus:shadow-purple-500/20 appearance-none transition-all"
-                                                >
-                                                    <option value="" disabled>
-                                                        Select your branch
-                                                    </option>
-                                                    {BRANCHES.map((b) => (
-                                                        <option key={b} value={b}>
-                                                            {b}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <p className="text-gray-400 text-xs">
-                                                ✨ We'll tailor recommendations for your field
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {/* Step 3 — What are you into? */}
-                                    {step === 3 && (
-                                        <div className="space-y-5 animate-fade-in">
-                                            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent">
-                                                What are you into? 🎯
-                                            </h2>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                {INTERESTS.map((interest) => (
-                                                    <button
-                                                        key={interest}
-                                                        onClick={() => toggleInterest(interest)}
-                                                        className={`rounded-xl border p-3 cursor-pointer text-sm text-left transition-all transform hover:scale-105 ${formData.interests.includes(interest)
-                                                                ? "border-purple-500/60 bg-purple-900/40 text-purple-200 shadow-lg shadow-purple-500/30"
-                                                                : "border-purple-500/20 text-gray-400 hover:border-purple-500/40 bg-purple-900/10"
-                                                            }`}
-                                                    >
-                                                        {interest}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Step 4 — Join some clubs */}
-                                    {step === 4 && (
-                                        <div className="space-y-5 animate-fade-in">
-                                            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-indigo-300 bg-clip-text text-transparent">
-                                                Join some clubs 🚀
-                                            </h2>
-                                            <div className="space-y-3">
-                                                {CLUBS.map((club) => (
-                                                    <button
-                                                        key={club.name}
-                                                        onClick={() => toggleClub(club.name)}
-                                                        className={`w-full rounded-xl border p-4 cursor-pointer text-left transition-all transform hover:scale-105 ${formData.clubs.includes(club.name)
-                                                                ? "border-purple-500/60 bg-purple-900/40 shadow-lg shadow-purple-500/30"
-                                                                : "border-purple-500/20 hover:border-purple-500/40 bg-purple-900/10"
-                                                            }`}
-                                                    >
-                                                        <p
-                                                            className={`font-medium text-sm ${formData.clubs.includes(club.name)
-                                                                    ? "text-purple-200"
-                                                                    : "text-white"
-                                                                }`}
-                                                        >
-                                                            {club.name}
-                                                        </p>
-                                                        <p className="text-gray-400 text-xs mt-1">
-                                                            {club.description}
-                                                        </p>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </motion.div>
-                            </AnimatePresence>
-                        </div>
-
-                        {/* Navigation Buttons */}
-                        <div className="flex items-center justify-between mt-10 gap-4">
-                            {step > 1 ? (
-                                <button
-                                    onClick={handleBack}
-                                    className="text-gray-300 hover:text-white text-sm font-medium transition-colors disabled:opacity-40 hover:bg-purple-900/30 px-4 py-2 rounded-lg"
-                                >
-                                    ← Back
-                                </button>
-                            ) : (
-                                <div />
-                            )}
-
-                            {step < TOTAL_STEPS ? (
-                                <button
-                                    onClick={handleNext}
-                                    disabled={!canProceed()}
-                                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-40 text-white rounded-xl px-6 py-2.5 text-sm font-medium transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 disabled:shadow-none"
-                                >
-                                    Next →
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={handleSubmit}
-                                    disabled={isSubmitting}
-                                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-40 text-white rounded-xl px-6 py-2.5 text-sm font-medium transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 disabled:shadow-none"
-                                >
-                                    {isSubmitting ? "Setting up..." : "🚀 Let's Go!"}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <div className="min-h-screen bg-black flex items-center justify-center text-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+          <p className="text-sm text-gray-400">Loading onboarding...</p>
         </div>
+      </div>
     );
+  }
+
+  return (
+    <main className="min-h-screen bg-black text-white px-4 py-8 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-5xl">
+        <header className="mb-8 text-center">
+          <p className="text-sm font-medium uppercase tracking-[0.28em] text-blue-300">CampusMind</p>
+          <h1 className="mt-3 text-3xl font-bold sm:text-4xl">Set up your student profile</h1>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-400 sm:text-base">
+            A cleaner setup flow with the same black, white and blue look as the auth pages.
+          </p>
+        </header>
+
+        <div className="glass glow-blue overflow-hidden rounded-[28px] border border-white/10">
+          <div className="bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.18),transparent_35%)] px-5 py-6 sm:px-8 sm:py-8">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.22em] text-gray-500">Profile Setup</p>
+                <h2 className="mt-2 text-xl font-semibold sm:text-2xl">Step {step} of {TOTAL_STEPS}</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                {Array.from({ length: TOTAL_STEPS }).map((_, index) => (
+                  <span
+                    key={index}
+                    className={`h-2.5 rounded-full transition-all duration-300 ${
+                      index + 1 === step
+                        ? "w-10 bg-gradient-to-r from-blue-500 to-cyan-400"
+                        : index + 1 < step
+                        ? "w-7 bg-blue-500/50"
+                        : "w-7 bg-white/10"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {error && (
+              <p className="mt-5 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-300">
+                {error}
+              </p>
+            )}
+
+            <div className="mt-8 min-h-[420px]">
+              {step === 1 && (
+                <section className="animate-fade-up">
+                  <h3 className="text-2xl font-semibold">Basic details</h3>
+                  <p className="mt-2 text-sm text-gray-400">Keep it simple and professional.</p>
+
+                  <div className="mt-6 grid gap-5 md:grid-cols-2">
+                    <label className="block">
+                      <span className="mb-2 block text-sm font-medium text-gray-200">Full name</span>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                        placeholder="Rahul Sharma"
+                        className="w-full rounded-2xl border border-white/10 bg-gray-900 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-gray-500 hover:border-blue-500/30 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-2 block text-sm font-medium text-gray-200">Year</span>
+                      <select
+                        value={formData.year}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, year: e.target.value }))}
+                        className="w-full rounded-2xl border border-white/10 bg-gray-900 px-4 py-3 text-sm text-white outline-none transition-all hover:border-blue-500/30 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
+                      >
+                        <option value="" disabled>
+                          Select your year
+                        </option>
+                        {YEARS.map((year) => (
+                          <option key={year} value={year} className="bg-gray-950 text-white">
+                            {year}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                </section>
+              )}
+
+              {step === 2 && (
+                <section className="animate-fade-up">
+                  <h3 className="text-2xl font-semibold">Academic profile</h3>
+                  <p className="mt-2 text-sm text-gray-400">We use this to tailor events and recommendations.</p>
+
+                  <div className="mt-6 max-w-xl">
+                    <label className="block">
+                      <span className="mb-2 block text-sm font-medium text-gray-200">Branch</span>
+                      <select
+                        value={formData.branch}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, branch: e.target.value }))}
+                        className="w-full rounded-2xl border border-white/10 bg-gray-900 px-4 py-3 text-sm text-white outline-none transition-all hover:border-blue-500/30 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
+                      >
+                        <option value="" disabled>
+                          Select your branch
+                        </option>
+                        {BRANCHES.map((branch) => (
+                          <option key={branch} value={branch} className="bg-gray-950 text-white">
+                            {branch}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                </section>
+              )}
+
+              {step === 3 && (
+                <section className="animate-fade-up">
+                  <h3 className="text-2xl font-semibold">Interests</h3>
+                  <p className="mt-2 text-sm text-gray-400">Pick a few so the assistant feels more useful from day one.</p>
+
+                  <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {INTERESTS.map((interest) => {
+                      const active = formData.interests.includes(interest);
+                      return (
+                        <button
+                          key={interest}
+                          type="button"
+                          onClick={() => toggleInterest(interest)}
+                          className={`rounded-2xl border px-4 py-3 text-left text-sm transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                            active
+                              ? "border-blue-500/40 bg-blue-500/15 text-blue-100"
+                              : "border-white/10 bg-gray-900 text-gray-300 hover:border-blue-500/30 hover:bg-gray-800"
+                          }`}
+                        >
+                          {interest}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {step === 4 && (
+                <section className="animate-fade-up">
+                  <h3 className="text-2xl font-semibold">Clubs and communities</h3>
+                  <p className="mt-2 text-sm text-gray-400">A larger list, styled to match the rest of the app.</p>
+
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    {CLUBS.map((club) => {
+                      const active = formData.clubs.includes(club.name);
+                      return (
+                        <button
+                          key={club.name}
+                          type="button"
+                          onClick={() => toggleClub(club.name)}
+                          className={`rounded-2xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                            active
+                              ? "border-blue-500/40 bg-blue-500/12 shadow-[0_0_24px_rgba(37,99,235,0.14)]"
+                              : "border-white/10 bg-gray-900 hover:border-blue-500/30 hover:bg-gray-800"
+                          }`}
+                        >
+                          <p className={`text-sm font-semibold ${active ? "text-blue-100" : "text-white"}`}>
+                            {club.name}
+                          </p>
+                          <p className="mt-1 text-xs leading-5 text-gray-400">{club.description}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+            </div>
+
+            <footer className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={() => setStep((prev) => Math.max(1, prev - 1))}
+                className={`rounded-xl border px-5 py-2.5 text-sm font-medium transition-all ${
+                  step === 1
+                    ? "cursor-not-allowed border-white/10 text-gray-600"
+                    : "border-white/10 text-gray-300 hover:border-blue-500/30 hover:text-white"
+                }`}
+                disabled={step === 1}
+              >
+                Back
+              </button>
+
+              {step < TOTAL_STEPS ? (
+                <button
+                  type="button"
+                  onClick={() => setStep((prev) => prev + 1)}
+                  disabled={!canProceed()}
+                  className="rounded-xl bg-[linear-gradient(135deg,#2563eb,#06b6d4)] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(37,99,235,0.25)] focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Continue
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="rounded-xl bg-[linear-gradient(135deg,#2563eb,#06b6d4)] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(37,99,235,0.25)] focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {isSubmitting ? "Setting up..." : "Finish setup"}
+                </button>
+              )}
+            </footer>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
 }

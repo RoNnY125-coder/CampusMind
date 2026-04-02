@@ -204,13 +204,13 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
         messages[messages.length - 1].content === "";
 
     return (
-        <div className="h-screen flex flex-col bg-black">
-            <header className="bg-gray-900 border-b border-white/10 px-4 md:px-6 py-4 flex items-center justify-between shrink-0">
+        <main className="h-screen flex flex-col bg-black">
+            <header className="glass border-b border-white/10 px-4 md:px-6 py-4 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
                     {onToggleSidebar && (
                         <button 
                             onClick={onToggleSidebar} 
-                            className="md:hidden text-gray-300 hover:text-white p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors border border-white/10"
+                            className="md:hidden text-gray-300 hover:text-white p-2 rounded-xl bg-gray-900 hover:bg-gray-800 transition-all border border-white/10 hover:border-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                             aria-label="Toggle Menu"
                         >
                             <Menu className="w-5 h-5" />
@@ -227,7 +227,7 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                     <button
                         type="button"
                         onClick={handleLogout}
-                        className="flex items-center gap-1.5 text-gray-400 hover:text-white text-sm px-2 py-1.5 rounded-lg border border-white/10 hover:border-blue-500/30 transition-colors"
+                        className="flex items-center gap-1.5 text-gray-400 hover:text-white text-sm px-3 py-2 rounded-xl border border-white/10 hover:border-blue-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         aria-label="Sign out"
                     >
                         <LogOut className="w-4 h-4" />
@@ -237,7 +237,7 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
             </header>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 bg-gray-950">
+            <section className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6 space-y-4 bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.08),transparent_28%),#030303]">
                 <AnimatePresence>
                 {messages.length === 0 ? (
                     <motion.div 
@@ -259,7 +259,7 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                                 <button
                                     key={chip}
                                     onClick={() => handleChipClick(chip)}
-                                    className="rounded-full px-5 py-2.5 text-sm text-gray-200 cursor-pointer transition-all border border-white/10 bg-gray-800/60 hover:border-blue-500/30"
+                                    className="rounded-full px-5 py-2.5 text-sm text-gray-200 cursor-pointer transition-all border border-white/10 bg-gray-900/80 hover:-translate-y-0.5 hover:border-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                                     style={{animationDelay: `${idx * 100}ms`}}
                                 >
                                     {chip}
@@ -285,7 +285,7 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                                 >
                                     <div>
                                         <p className="text-gray-500 text-xs mb-2 font-medium">CampusMind</p>
-                                        <div className="bg-gray-800 border border-white/10 rounded-2xl rounded-bl-sm px-4 py-3">
+                                        <div className="bg-gray-900 border border-white/10 rounded-2xl rounded-bl-sm px-4 py-3 shadow-[0_12px_24px_rgba(0,0,0,0.18)]">
                                             <div className="flex items-center gap-2">
                                                 <span className="typing-dot" />
                                                 <span className="typing-dot" />
@@ -306,7 +306,7 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                                     transition={{ duration: 0.3 }}
                                     className="flex justify-end"
                                 >
-                                    <div className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-2xl rounded-br-sm px-5 py-3.5 max-w-xs ml-auto text-sm">
+                                    <div className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-2xl rounded-br-sm px-5 py-3.5 max-w-xs sm:max-w-sm ml-auto text-sm shadow-[0_16px_34px_rgba(37,99,235,0.18)]">
                                         {msg.content}
                                     </div>
                                 </motion.div>
@@ -323,7 +323,7 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                             >
                                 <div>
                                     <p className="text-gray-500 text-xs mb-2 font-medium">CampusMind</p>
-                                    <div className="bg-gray-800 border border-white/10 text-gray-100 rounded-2xl rounded-bl-sm px-5 py-3.5 max-w-sm text-sm leading-relaxed whitespace-pre-wrap">
+                                    <div className="bg-gray-900 border border-white/10 text-gray-100 rounded-2xl rounded-bl-sm px-5 py-3.5 max-w-sm text-sm leading-relaxed whitespace-pre-wrap shadow-[0_12px_24px_rgba(0,0,0,0.16)]">
                                         {msg.content}
                                     </div>
                                 </div>
@@ -333,10 +333,16 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                 )}
                 </AnimatePresence>
                 <div ref={bottomRef} />
-            </div>
+            </section>
 
             {/* Input Bar */}
-            <div className="bg-gray-900 border-t border-white/10 p-3 md:p-4 shrink-0 pb-safe">
+            <form
+                className="glass border-t border-white/10 p-3 md:p-4 shrink-0 pb-safe"
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    void handleSend();
+                }}
+            >
                 <div className="flex gap-2 md:gap-3 items-end">
                     <textarea
                         ref={textareaRef}
@@ -346,18 +352,20 @@ export default function ChatWindow({ userId, onToggleSidebar }: ChatWindowProps)
                         onKeyDown={handleKeyDown}
                         disabled={isLoading}
                         placeholder="Message CampusMind..."
-                        className="bg-gray-800 border border-white/10 text-white rounded-2xl px-4 py-3 min-h-[44px] max-h-32 flex-1 resize-none outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 text-sm md:text-base disabled:opacity-40 transition-all placeholder-gray-500"
+                        aria-label="Message CampusMind"
+                        className="bg-gray-900 border border-white/10 text-white rounded-2xl px-4 py-3 min-h-[44px] max-h-32 flex-1 resize-none outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 text-sm md:text-base disabled:opacity-40 transition-all placeholder-gray-500 hover:border-blue-500/20"
                     />
                     <button
+                        type="submit"
                         onClick={() => handleSend()}
                         disabled={isLoading || !input.trim()}
-                        className="h-[44px] flex items-center justify-center bg-gradient-blue disabled:opacity-40 text-white rounded-2xl px-4 md:px-6 py-2.5 font-medium text-sm md:text-base transition-all shadow-glow-blue hover:shadow-glow-blue-lg disabled:shadow-none shrink-0"
+                        className="h-[44px] flex items-center justify-center bg-gradient-blue disabled:opacity-40 text-white rounded-2xl px-4 md:px-6 py-2.5 font-medium text-sm md:text-base transition-all shadow-glow-blue hover:-translate-y-0.5 hover:shadow-glow-blue-lg disabled:shadow-none shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     >
                         <span className="hidden md:inline">Send</span>
                         <Send className="md:hidden w-4 h-4" />
                     </button>
                 </div>
-            </div>
-        </div>
+            </form>
+        </main>
     );
 }
