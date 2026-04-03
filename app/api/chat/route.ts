@@ -63,9 +63,6 @@ export async function POST(request: Request) {
 
     const stream = new ReadableStream({
       async start(controller) {
-        const meta = JSON.stringify({ sessionId: session.id }) + "\n__META_END__\n";
-        controller.enqueue(new TextEncoder().encode(meta));
-
         try {
           for await (const chunk of chatCompletion) {
             const text = chunk.choices[0]?.delta?.content || "";

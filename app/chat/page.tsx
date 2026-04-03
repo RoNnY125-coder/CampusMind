@@ -8,113 +8,64 @@ import ChatWindow from "@/components/ChatWindow";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function ChatPage() {
-    const { data: session, status } = useSession();
-    const router = useRouter();
-    const [userId, setUserId] = useState<string | null>(null);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [isBooting, setIsBooting] = useState(true);
-    const [bootError, setBootError] = useState("");
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (status === "loading") return;
-        if (status === "unauthenticated") {
-            console.log("[chat] unauthenticated, redirecting to login");
-            router.replace("/login");
-            return;
-        }
-
-        const bootApp = async () => {
-            console.log("[chat] boot start");
-            const userId = (session?.user as any)?.id;
-
-            if (!userId) {
-                console.log("[chat] missing userId, redirecting to login");
-                router.replace("/login");
-                return;
-            }
-
-            console.log("[chat] session found, booting app");
-            setIsBooting(true);
-            setBootError("");
-            setUserId(userId);
-
-            const startupTasks = await Promise.allSettled([
-                fetch("/api/seed", { method: "POST" }).then(async (response) => {
-                    if (!response.ok) {
-                        throw new Error(`seed failed: ${response.status}`);
-                    }
-                    return response.json();
-                })
-            ]);
-
-            const [seedResult] = startupTasks;
-
-            if (seedResult.status === "rejected") {
-                console.error("[chat] startup fetch warning", {
-                    seed: "rejected"
-                });
-                setBootError("Some app data could not be loaded. You can still continue.");
-            }
-
-            setIsBooting(false);
-        };
-
-        bootApp().catch((error) => {
-            console.error("[chat] app boot failed", error);
-            setBootError("We could not finish loading the app. Please refresh.");
-            setIsBooting(false);
-        });
-    }, [status, session, router]);
-
-    if (status === "loading" || isBooting || !userId) {
-        return (
-            <div className="h-screen flex items-center justify-center bg-black text-white">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
-                    <p className="text-sm text-gray-400">Loading CampusMind...</p>
-                </div>
-            </div>
-        );
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+      return;
     }
 
-    if (status === "unauthenticated" || !session) {
-        return null;
+    if (status === "authenticated" && session?.user) {
+      setUserId((session.user as any).id);
     }
+  }, [status, session, router]);
 
+  if (status === "loading" || !userId) {
     return (
-        <ErrorBoundary>
-        <div className="flex h-screen bg-black overflow-hidden relative">
-            <aside
-                aria-label="Campus navigation and memory sidebar"
-                className={`absolute md:relative z-20 w-80 h-full bg-gray-900/95 md:bg-transparent backdrop-blur-md transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} shrink-0 border-r border-white/10 shadow-xl md:shadow-none`}
-            >
-                <MemorySidebar
-                    userId={userId}
-                    onSessionSelect={(session) => {
-                        router.push(`/chat?session=${session}`);
-                        setIsSidebarOpen(false);
-                    }}
-                />
-            </aside>
-
-            {isSidebarOpen && (
-                <div 
-                    className="fixed inset-0 bg-black/60 z-10 md:hidden backdrop-blur-sm transition-opacity" 
-                    onClick={() => setIsSidebarOpen(false)} 
-                />
-            )}
-
-            <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-                {bootError && (
-                    <div className="px-4 pt-4 md:px-6">
-                        <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200">
-                            {bootError}
-                        </div>
-                    </div>
-                )}
-                <ChatWindow userId={userId} onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-            </main>
+      <div className="h-screen flex items-center justify-center bg-black text-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+          <p>Loading CampusMind...</p>
         </div>
-        </ErrorBoundary>
+      </div>
     );
+  }
+
+  return (
+    <ErrorBoundary>
+      <div className="flex h-screen bg-black overflow-hidden relative">
+        <aside
+          className={`absolute md:relative z-20 w-80 h-full bg-gray-900/95 md:bg-transparent backdrop-blur-md transform transition-transform duration-300 ease-in-out ${
+            isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          } shrink-0 border-r border-white/10 shadow-xl md:shadow-none`}
+        >
+          <MemorySidebar
+            userId={userId}
+            onSessionSelect={(sessionId) => {
+              setActiveSessionId(sessionId);
+              setIsSidebarOpen(false);
+            }}
+          />
+        </aside>
+
+        {isSidebarOpen && (
+          <div className="fixed inset-0 bg-black/60 z-10 md:hidden backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />
+        )}
+
+        <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+          <ChatWindow
+            userId={userId}
+            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+            sessionId={activeSessionId}
+            onSessionCreated={(sessionId) => setActiveSessionId(sessionId)}
+          />
+        </main>
+      </div>
+    </ErrorBoundary>
+  );
 }
