@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSupabaseAuth } from "@/components/SupabaseAuthProvider";
+import { useSession } from "next-auth/react";
 import MemorySidebar from "@/components/MemorySidebar";
 import ChatWindow from "@/components/ChatWindow";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function ChatPage() {
-    const { user, session, loading, refreshSession } = useSupabaseAuth();
+    const { data: session, status } = useSession();
     const router = useRouter();
     const [userId, setUserId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -16,21 +16,19 @@ export default function ChatPage() {
     const [bootError, setBootError] = useState("");
 
     useEffect(() => {
-        let mounted = true;
+        if (status === "loading") return;
+        if (status === "unauthenticated") {
+            console.log("[chat] unauthenticated, redirecting to login");
+            router.replace("/login");
+            return;
+        }
 
         const bootApp = async () => {
-            if (loading) return;
-
             console.log("[chat] boot start");
-            let activeSession = session;
+            const userId = (session?.user as any)?.id;
 
-            if (!activeSession?.access_token) {
-                console.log("[chat] no session in context, refreshing");
-                activeSession = await refreshSession();
-            }
-
-            if (!activeSession?.access_token || !user) {
-                console.log("[chat] missing session after refresh, redirecting to login");
+            if (!userId) {
+                console.log("[chat] missing userId, redirecting to login");
                 router.replace("/login");
                 return;
             }
@@ -38,7 +36,7 @@ export default function ChatPage() {
             console.log("[chat] session found, booting app");
             setIsBooting(true);
             setBootError("");
-            setUserId(user.id);
+            setUserId(userId);
 
             const startupTasks = await Promise.allSettled([
                 fetch("/api/seed", { method: "POST" }).then(async (response) => {
@@ -46,37 +44,16 @@ export default function ChatPage() {
                         throw new Error(`seed failed: ${response.status}`);
                     }
                     return response.json();
-                }),
-                fetch("/api/auth/ensure-profile", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${activeSession.access_token}`,
-                    },
-                }).then(async (response) => {
-                    if (!response.ok) {
-                        const body = await response.text();
-                        throw new Error(`ensure-profile failed: ${response.status} ${body}`);
-                    }
-                    return response.json();
-                }),
+                })
             ]);
 
-            if (!mounted) return;
+            const [seedResult] = startupTasks;
 
-            const [seedResult, profileResult] = startupTasks;
-
-            if (seedResult.status === "rejected" || profileResult.status === "rejected") {
+            if (seedResult.status === "rejected") {
                 console.error("[chat] startup fetch warning", {
-                    seed: seedResult.status === "rejected" ? seedResult.reason : "ok",
-                    profile: profileResult.status === "rejected" ? profileResult.reason : "ok",
+                    seed: "rejected"
                 });
                 setBootError("Some app data could not be loaded. You can still continue.");
-            } else {
-                console.log("[chat] startup fetch complete", {
-                    seed: seedResult.value,
-                    profile: profileResult.value,
-                });
             }
 
             setIsBooting(false);
@@ -84,17 +61,12 @@ export default function ChatPage() {
 
         bootApp().catch((error) => {
             console.error("[chat] app boot failed", error);
-            if (!mounted) return;
             setBootError("We could not finish loading the app. Please refresh.");
             setIsBooting(false);
         });
+    }, [status, session, router]);
 
-        return () => {
-            mounted = false;
-        };
-    }, [loading, refreshSession, router, session, user]);
-
-    if (loading || isBooting || !userId) {
+    if (status === "loading" || isBooting || !userId) {
         return (
             <div className="h-screen flex items-center justify-center bg-black text-white">
                 <div className="flex flex-col items-center gap-4">
@@ -105,7 +77,7 @@ export default function ChatPage() {
         );
     }
 
-    if (!session || !user) {
+    if (status === "unauthenticated" || !session) {
         return null;
     }
 

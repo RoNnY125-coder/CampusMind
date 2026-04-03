@@ -57,7 +57,7 @@ import { useSession } from "next-auth/react";
 
 export default function OnboardPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -71,6 +71,7 @@ export default function OnboardPage() {
   });
 
   useEffect(() => {
+    if (status === "loading") return;
     if (status === "unauthenticated") {
         router.push("/login");
     }
@@ -106,8 +107,10 @@ export default function OnboardPage() {
     setError("");
 
     try {
-      if (!session) {
-        throw new Error("Your session is not ready yet. Please try again.");
+      const userId = (session?.user as any)?.id;
+      if (!userId) {
+        router.push("/login");
+        return;
       }
 
       const res = await fetch("/api/onboard", {
@@ -115,7 +118,7 @@ export default function OnboardPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...formData }),
+        body: JSON.stringify({ ...formData, userId }),
       });
 
       const payload = (await res.json().catch(() => ({}))) as { error?: string };
@@ -124,6 +127,10 @@ export default function OnboardPage() {
       }
 
       console.log("[onboard] submit complete");
+      
+      // Force session token refresh so hasOnboarded becomes true
+      await update({ hasOnboarded: true });
+      
       router.push("/chat");
     } catch (err) {
       console.error("[onboard] submit:", err);
