@@ -66,6 +66,11 @@ const handler = NextAuth({
           }
 
           console.log('[auth] creating new student...');
+          console.log('[auth] supabase config:', {
+            url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+            keyLength: process.env.SUPABASE_SERVICE_ROLE_KEY?.length,
+            keyStart: process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 20),
+          });
           const { data: newStudent, error: insertError } = await db
             .from('students')
             .insert({
