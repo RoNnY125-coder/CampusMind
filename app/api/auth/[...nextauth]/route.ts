@@ -119,10 +119,14 @@ const handler = NextAuth({
   pages: { signIn: '/login' },
 
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session: sessionData }) {
       if (user) {
         token.id           = user.id;
         token.hasOnboarded = (user as any).hasOnboarded ?? false;
+      }
+      // Handle session update() calls from client
+      if (trigger === "update" && sessionData?.hasOnboarded !== undefined) {
+        token.hasOnboarded = sessionData.hasOnboarded;
       }
       return token;
     },
