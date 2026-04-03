@@ -1,11 +1,10 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useSupabaseAuth } from "@/components/SupabaseAuthProvider";
-import { supabase } from "@/lib/supabase";
-import { ensureStudentProfile } from "@/lib/auth-helpers";
-
+'use client';
+ 
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { motion, AnimatePresence } from 'framer-motion';
+ 
 interface FormData {
   name: string;
   year: string;
@@ -13,354 +12,233 @@ interface FormData {
   interests: string[];
   clubs: string[];
 }
-
-const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
-const BRANCHES = ["CSE", "ECE", "Mechanical", "Civil", "IT", "MBA", "BBA", "Biotech", "Other"];
-const INTERESTS = [
-  "Coding",
-  "Music",
-  "Sports",
-  "Art",
-  "Finance",
-  "Robotics",
-  "Gaming",
-  "Literature",
-  "Photography",
-  "Dance",
-  "Debate",
-  "Film-making",
+ 
+const YEARS     = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+const BRANCHES  = ['CSE', 'ECE', 'Mechanical', 'Civil', 'IT', 'MBA', 'Other'];
+const INTERESTS = ['Coding','Music','Sports','Art','Finance','Robotics','Gaming','Literature','Photography','Dance','Debate','Film-making'];
+const CLUBS = [
+  { name: 'Coding Club',              description: 'Competitive programming, open source & hackathons' },
+  { name: 'Photography Club',         description: 'Weekly photo-walks, editing workshops, annual exhibition' },
+  { name: 'Robotics Club',            description: 'Build bots, compete at state level' },
+  { name: 'Entrepreneurship Cell',    description: 'Pitch nights, startup talks & mentor networking' },
+  { name: 'AI and ML Society',        description: 'Machine learning projects and research' },
+  { name: 'Cybersecurity Club',       description: 'CTF competitions and ethical hacking workshops' },
+  { name: 'Music Club',               description: 'Jam sessions, performances and music production' },
+  { name: 'Drama Society',            description: 'Theatre productions and improv sessions' },
 ];
-const CLUBS: { name: string; description: string }[] = [
-  { name: "Coding Club", description: "Competitive programming, open source and hackathon prep." },
-  { name: "Photography Club", description: "Photo walks, editing workshops and annual showcases." },
-  { name: "Robotics Club", description: "Build autonomous bots and compete in inter-college events." },
-  { name: "Entrepreneurship Cell", description: "Startup meetups, pitch nights and founder mentorship." },
-  { name: "AI and ML Society", description: "Model building, paper reading groups and mini projects." },
-  { name: "Cybersecurity Club", description: "CTFs, ethical hacking basics and security labs." },
-  { name: "Debate Society", description: "Public speaking, debate practice and competition coaching." },
-  { name: "Dramatics Club", description: "Stage productions, improv nights and auditions each semester." },
-  { name: "Music Club", description: "Band jams, vocals, instrument circles and event performances." },
-  { name: "Dance Crew", description: "Choreography practice for cultural fests and campus showcases." },
-  { name: "Quiz Club", description: "Weekly quizzes, current affairs and tournament preparation." },
-  { name: "Literary Club", description: "Poetry, creative writing sessions and editorial collaborations." },
-  { name: "Design Club", description: "UI, posters, branding and visual storytelling projects." },
-  { name: "Film and Media Club", description: "Short films, script writing and production workshops." },
-  { name: "Gaming and Esports Club", description: "Casual scrims, tournaments and streaming events." },
-  { name: "NSS Volunteer Cell", description: "Community service drives, awareness campaigns and field work." },
-  { name: "Eco Club", description: "Sustainability projects, campus cleanups and green campaigns." },
-  { name: "Finance and Investment Club", description: "Markets, case studies and investing fundamentals." },
-];
-
+ 
 const TOTAL_STEPS = 4;
-
-import { useSession } from "next-auth/react";
-
+ 
 export default function OnboardPage() {
   const router = useRouter();
   const { data: session, status, update } = useSession();
-  const [step, setStep] = useState(1);
+  const [step, setStep]               = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    year: "",
-    branch: "",
-    interests: [],
-    clubs: [],
+  const [formData, setFormData]       = useState<FormData>({
+    name: '', year: '', branch: '', interests: [], clubs: [],
   });
-
+ 
   useEffect(() => {
-    if (status === "loading") return;
-    if (status === "unauthenticated") {
-        router.push("/login");
-    }
+    if (status === 'loading') return;
+    if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
-
+ 
   const canProceed = () => {
-    if (step === 1) return formData.name.trim() !== "" && formData.year !== "";
-    if (step === 2) return formData.branch !== "";
+    if (step === 1) return formData.name.trim() !== '' && formData.year !== '';
+    if (step === 2) return formData.branch !== '';
     if (step === 3) return formData.interests.length > 0;
     return true;
   };
-
-  const toggleInterest = (interest: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      interests: prev.interests.includes(interest)
-        ? prev.interests.filter((item) => item !== interest)
-        : [...prev.interests, interest],
-    }));
-  };
-
-  const toggleClub = (club: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      clubs: prev.clubs.includes(club)
-        ? prev.clubs.filter((item) => item !== club)
-        : [...prev.clubs, club],
-    }));
-  };
-
+ 
+  const toggleInterest = (v: string) =>
+    setFormData(p => ({ ...p, interests: p.interests.includes(v) ? p.interests.filter(i => i !== v) : [...p.interests, v] }));
+ 
+  const toggleClub = (v: string) =>
+    setFormData(p => ({ ...p, clubs: p.clubs.includes(v) ? p.clubs.filter(c => c !== v) : [...p.clubs, v] }));
+ 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    setError("");
-
     try {
       const userId = (session?.user as any)?.id;
-      if (!userId) {
-        router.push("/login");
-        return;
-      }
-
-      const res = await fetch("/api/onboard", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      if (!userId) { router.push('/login'); return; }
+ 
+      const res = await fetch('/api/onboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, userId }),
       });
-
-      const payload = (await res.json().catch(() => ({}))) as { error?: string };
+ 
       if (!res.ok) {
-        throw new Error(payload.error ?? "Onboarding failed. Please try again.");
+        const err = await res.json();
+        console.error('Onboard error:', err);
+        throw new Error('Onboarding failed');
       }
-
-      console.log("[onboard] submit complete");
-      
-      // Force session token refresh so hasOnboarded becomes true
+ 
+      // Refresh session token so hasOnboarded becomes true
       await update({ hasOnboarded: true });
-      
-      router.push("/chat");
-    } catch (err) {
-      console.error("[onboard] submit:", err);
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      router.push('/chat');
+    } catch (error) {
+      console.error('Onboard error:', error);
+      alert('Something went wrong, please try again');
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  if (status === "loading" || status === "unauthenticated") {
+ 
+  if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-          <p className="text-sm text-gray-400">Loading onboarding...</p>
-        </div>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
       </div>
     );
   }
-
-  if (!session) {
-    return null;
-  }
-
+ 
   return (
-    <main className="min-h-screen bg-black text-white px-4 py-8 sm:px-6 lg:px-8">
-      <section className="mx-auto max-w-5xl">
-        <header className="mb-8 text-center">
-          <p className="text-sm font-medium uppercase tracking-[0.28em] text-blue-300">CampusMind</p>
-          <h1 className="mt-3 text-3xl font-bold sm:text-4xl">Set up your student profile</h1>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-400 sm:text-base">
-            A cleaner setup flow with the same black, white and blue look as the auth pages.
-          </p>
-        </header>
-
-        <div className="glass glow-blue overflow-hidden rounded-[28px] border border-white/10">
-          <div className="bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.18),transparent_35%)] px-5 py-6 sm:px-8 sm:py-8">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.22em] text-gray-500">Profile Setup</p>
-                <h2 className="mt-2 text-xl font-semibold sm:text-2xl">Step {step} of {TOTAL_STEPS}</h2>
-              </div>
-              <div className="flex items-center gap-2">
-                {Array.from({ length: TOTAL_STEPS }).map((_, index) => (
-                  <span
-                    key={index}
-                    className={`h-2.5 rounded-full transition-all duration-300 ${
-                      index + 1 === step
-                        ? "w-10 bg-gradient-to-r from-blue-500 to-cyan-400"
-                        : index + 1 < step
-                        ? "w-7 bg-blue-500/50"
-                        : "w-7 bg-white/10"
-                    }`}
-                  />
-                ))}
-              </div>
+    <div className="min-h-screen bg-black flex items-center justify-center px-4 py-10">
+      {/* Blue orb */}
+      <div className="fixed top-0 right-0 w-[600px] h-[600px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 70%)' }} />
+ 
+      <div className="relative z-10 w-full max-w-2xl">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="text-4xl mb-3">🎓</div>
+          <h1 className="text-white text-3xl font-bold">Set up your profile</h1>
+          <p className="text-gray-500 text-sm mt-2">Tell us about yourself so CampusMind can personalise your experience</p>
+        </div>
+ 
+        {/* Card */}
+        <div className="bg-gray-900 border border-white/8 rounded-2xl p-8">
+          {/* Progress */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-gray-500 text-xs">PROFILE SETUP</p>
+              <p className="text-gray-500 text-xs">Step {step} of {TOTAL_STEPS}</p>
             </div>
-
-            {error && (
-              <p className="mt-5 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-300">
-                {error}
-              </p>
-            )}
-            {info && (
-              <p className="mt-5 rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
-                {info}
-              </p>
-            )}
-
-            <div className="mt-8 min-h-[420px]">
+            <div className="flex gap-2">
+              {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+                <div key={i} className="h-1 flex-1 rounded-full transition-all duration-500"
+                  style={{ background: i + 1 <= step ? 'linear-gradient(135deg, #2563eb, #06b6d4)' : '#222' }} />
+              ))}
+            </div>
+          </div>
+ 
+          {/* Step content */}
+          <AnimatePresence mode="wait">
+            <motion.div key={step}
+              initial={{ opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 }}
+              transition={{ duration: 0.2 }}
+              className="min-h-[320px]"
+            >
+              {/* Step 1 */}
               {step === 1 && (
-                <section className="animate-fade-up">
-                  <h3 className="text-2xl font-semibold">Basic details</h3>
-                  <p className="mt-2 text-sm text-gray-400">Keep it simple and professional.</p>
-
-                  <div className="mt-6 grid gap-5 md:grid-cols-2">
-                    <label className="block">
-                      <span className="mb-2 block text-sm font-medium text-gray-200">Full name</span>
-                      <input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                        placeholder="Rahul Sharma"
-                        className="w-full rounded-2xl border border-white/10 bg-gray-900 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-gray-500 hover:border-blue-500/30 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
-                      />
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-2 block text-sm font-medium text-gray-200">Year</span>
-                      <select
-                        value={formData.year}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, year: e.target.value }))}
-                        className="w-full rounded-2xl border border-white/10 bg-gray-900 px-4 py-3 text-sm text-white outline-none transition-all hover:border-blue-500/30 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
-                      >
-                        <option value="" disabled>
-                          Select your year
-                        </option>
-                        {YEARS.map((year) => (
-                          <option key={year} value={year} className="bg-gray-950 text-white">
-                            {year}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                <div className="space-y-5">
+                  <h2 className="text-white text-xl font-semibold">Tell us about you</h2>
+                  <div>
+                    <label className="text-gray-400 text-sm block mb-2">Full Name</label>
+                    <input type="text" placeholder="Your name"
+                      value={formData.name}
+                      onChange={e => setFormData(p => ({ ...p, name: e.target.value }))}
+                      className="w-full bg-black border border-white/10 text-white rounded-xl px-4 py-3 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500/60 transition-all" />
                   </div>
-                </section>
+                  <div>
+                    <label className="text-gray-400 text-sm block mb-2">Year</label>
+                    <select value={formData.year}
+                      onChange={e => setFormData(p => ({ ...p, year: e.target.value }))}
+                      className="w-full bg-black border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500/60 transition-all appearance-none">
+                      <option value="" disabled>Select your year</option>
+                      {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>
+                </div>
               )}
-
+ 
+              {/* Step 2 */}
               {step === 2 && (
-                <section className="animate-fade-up">
-                  <h3 className="text-2xl font-semibold">Academic profile</h3>
-                  <p className="mt-2 text-sm text-gray-400">We use this to tailor events and recommendations.</p>
-
-                  <div className="mt-6 max-w-xl">
-                    <label className="block">
-                      <span className="mb-2 block text-sm font-medium text-gray-200">Branch</span>
-                      <select
-                        value={formData.branch}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, branch: e.target.value }))}
-                        className="w-full rounded-2xl border border-white/10 bg-gray-900 px-4 py-3 text-sm text-white outline-none transition-all hover:border-blue-500/30 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
-                      >
-                        <option value="" disabled>
-                          Select your branch
-                        </option>
-                        {BRANCHES.map((branch) => (
-                          <option key={branch} value={branch} className="bg-gray-950 text-white">
-                            {branch}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                <div className="space-y-5">
+                  <h2 className="text-white text-xl font-semibold">Your department</h2>
+                  <div>
+                    <label className="text-gray-400 text-sm block mb-2">Branch</label>
+                    <select value={formData.branch}
+                      onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))}
+                      className="w-full bg-black border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500/60 transition-all appearance-none">
+                      <option value="" disabled>Select your branch</option>
+                      {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
                   </div>
-                </section>
+                  <p className="text-gray-600 text-xs">We'll tailor recommendations for your field</p>
+                </div>
               )}
-
+ 
+              {/* Step 3 */}
               {step === 3 && (
-                <section className="animate-fade-up">
-                  <h3 className="text-2xl font-semibold">Interests</h3>
-                  <p className="mt-2 text-sm text-gray-400">Pick a few so the assistant feels more useful from day one.</p>
-
-                  <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {INTERESTS.map((interest) => {
-                      const active = formData.interests.includes(interest);
-                      return (
-                        <button
-                          key={interest}
-                          type="button"
-                          onClick={() => toggleInterest(interest)}
-                          className={`rounded-2xl border px-4 py-3 text-left text-sm transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
-                            active
-                              ? "border-blue-500/40 bg-blue-500/15 text-blue-100"
-                              : "border-white/10 bg-gray-900 text-gray-300 hover:border-blue-500/30 hover:bg-gray-800"
-                          }`}
-                        >
-                          {interest}
-                        </button>
-                      );
-                    })}
+                <div className="space-y-4">
+                  <h2 className="text-white text-xl font-semibold">What are you into?</h2>
+                  <div className="grid grid-cols-3 gap-2">
+                    {INTERESTS.map(interest => (
+                      <button key={interest} onClick={() => toggleInterest(interest)}
+                        className="rounded-xl border px-3 py-2.5 text-sm text-left transition-all"
+                        style={{
+                          background:   formData.interests.includes(interest) ? 'rgba(37,99,235,0.2)' : 'transparent',
+                          borderColor:  formData.interests.includes(interest) ? 'rgba(37,99,235,0.6)' : 'rgba(255,255,255,0.08)',
+                          color:        formData.interests.includes(interest) ? '#93c5fd' : '#888',
+                        }}>
+                        {interest}
+                      </button>
+                    ))}
                   </div>
-                </section>
+                </div>
               )}
-
+ 
+              {/* Step 4 */}
               {step === 4 && (
-                <section className="animate-fade-up">
-                  <h3 className="text-2xl font-semibold">Clubs and communities</h3>
-                  <p className="mt-2 text-sm text-gray-400">A larger list, styled to match the rest of the app.</p>
-
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                    {CLUBS.map((club) => {
-                      const active = formData.clubs.includes(club.name);
-                      return (
-                        <button
-                          key={club.name}
-                          type="button"
-                          onClick={() => toggleClub(club.name)}
-                          className={`rounded-2xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
-                            active
-                              ? "border-blue-500/40 bg-blue-500/12 shadow-[0_0_24px_rgba(37,99,235,0.14)]"
-                              : "border-white/10 bg-gray-900 hover:border-blue-500/30 hover:bg-gray-800"
-                          }`}
-                        >
-                          <p className={`text-sm font-semibold ${active ? "text-blue-100" : "text-white"}`}>
-                            {club.name}
-                          </p>
-                          <p className="mt-1 text-xs leading-5 text-gray-400">{club.description}</p>
-                        </button>
-                      );
-                    })}
+                <div className="space-y-4">
+                  <h2 className="text-white text-xl font-semibold">Join some clubs</h2>
+                  <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto pr-1">
+                    {CLUBS.map(club => (
+                      <button key={club.name} onClick={() => toggleClub(club.name)}
+                        className="w-full rounded-xl border p-4 text-left transition-all"
+                        style={{
+                          background:  formData.clubs.includes(club.name) ? 'rgba(37,99,235,0.15)' : 'transparent',
+                          borderColor: formData.clubs.includes(club.name) ? 'rgba(37,99,235,0.5)'  : 'rgba(255,255,255,0.08)',
+                        }}>
+                        <p className="text-white text-sm font-medium">{club.name}</p>
+                        <p className="text-gray-500 text-xs mt-0.5">{club.description}</p>
+                      </button>
+                    ))}
                   </div>
-                </section>
+                </div>
               )}
-            </div>
-
-            <footer className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                type="button"
-                onClick={() => setStep((prev) => Math.max(1, prev - 1))}
-                className={`rounded-xl border px-5 py-2.5 text-sm font-medium transition-all ${
-                  step === 1
-                    ? "cursor-not-allowed border-white/10 text-gray-600"
-                    : "border-white/10 text-gray-300 hover:border-blue-500/30 hover:text-white"
-                }`}
-                disabled={step === 1}
-              >
-                Back
+            </motion.div>
+          </AnimatePresence>
+ 
+          {/* Navigation */}
+          <div className="flex items-center justify-between mt-8">
+            {step > 1 ? (
+              <button onClick={() => setStep(s => s - 1)}
+                className="text-gray-500 hover:text-white text-sm transition-colors px-4 py-2">
+                ← Back
               </button>
-
-              {step < TOTAL_STEPS ? (
-                <button
-                  type="button"
-                  onClick={() => setStep((prev) => prev + 1)}
-                  disabled={!canProceed()}
-                  className="rounded-xl bg-[linear-gradient(135deg,#2563eb,#06b6d4)] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(37,99,235,0.25)] focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Continue
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="rounded-xl bg-[linear-gradient(135deg,#2563eb,#06b6d4)] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(37,99,235,0.25)] focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {isSubmitting ? "Setting up..." : "Finish setup"}
-                </button>
-              )}
-            </footer>
+            ) : <div />}
+ 
+            {step < TOTAL_STEPS ? (
+              <button onClick={() => setStep(s => s + 1)} disabled={!canProceed()}
+                className="px-6 py-2.5 rounded-xl text-white text-sm font-semibold transition-all disabled:opacity-30"
+                style={{ background: 'linear-gradient(135deg, #2563eb, #06b6d4)' }}>
+                Next →
+              </button>
+            ) : (
+              <button onClick={handleSubmit} disabled={isSubmitting}
+                className="px-6 py-2.5 rounded-xl text-white text-sm font-semibold transition-all disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #2563eb, #06b6d4)' }}>
+                {isSubmitting ? 'Setting up...' : "Let's Go →"}
+              </button>
+            )}
           </div>
         </div>
-      </section>
-    </main>
+      </div>
+    </div>
   );
 }
