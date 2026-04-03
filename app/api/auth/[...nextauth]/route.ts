@@ -31,7 +31,7 @@ const handler = NextAuth({
         if (!supabaseUrl || !serviceKey) {
           console.log('[auth] Supabase not configured — using fallback demo login');
           return {
-            id:           'demo-' + credentials.email,
+            id:           crypto.randomUUID(),
             email:        credentials.email,
             name:         credentials.email.split('@')[0],
             hasOnboarded: false,
@@ -80,7 +80,7 @@ const handler = NextAuth({
             console.error('[auth] insert error:', insertError.message, insertError.code, insertError.details);
             // Fall back to a non-DB session so login still works
             return {
-              id:           'fallback-' + Date.now(),
+              id:           crypto.randomUUID(),
               email:        credentials.email,
               name:         credentials.email.split('@')[0],
               hasOnboarded: false,
@@ -99,7 +99,7 @@ const handler = NextAuth({
           console.error('[auth] unexpected error:', err?.message ?? err);
           // Fall back so login always works even if DB is down
           return {
-            id:           'fallback-' + Date.now(),
+            id:           crypto.randomUUID(),
             email:        credentials.email,
             name:         credentials.email.split('@')[0],
             hasOnboarded: false,
