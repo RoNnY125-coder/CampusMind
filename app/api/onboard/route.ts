@@ -1,39 +1,31 @@
 import { NextResponse } from "next/server";
 import { retainMemory } from "@/lib/memory";
 import { supabaseServer } from "@/lib/supabase-server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const token = authHeader?.replace(/^Bearer\s+/i, "").trim();
-    const { name, year, branch, interests = [], clubs = [] } = await request.json();
-
-    if (!token) {
-      return NextResponse.json({ error: "Missing Authorization bearer token" }, { status: 401 });
-    }
-
-    const admin = supabaseServer();
-    const {
-      data: { user },
-      error: userError,
-    } = await admin.auth.getUser(token);
-
-    if (userError || !user) {
-      console.error("[onboard] getUser failed:", userError?.message);
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
       return NextResponse.json({ error: "Invalid or expired session" }, { status: 401 });
     }
+    
+    const userId = (session.user as any).id;
+    const { name, year, branch, interests = [], clubs = [] } = await request.json();
+
+    const admin = supabaseServer();
 
     if (!name || !year || !branch) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const userId = user.id;
     console.log("[onboard] saving student profile", { userId });
 
     const { error: dbError } = await admin.from("students").upsert(
       {
         id: userId,
-        email: user.email ?? null,
+        email: session.user.email ?? null,
         name,
         year,
         branch,
