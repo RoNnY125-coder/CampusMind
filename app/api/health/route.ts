@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { retainMemory, recallMemories } from "@/lib/hindsight"
+import { retainMemory, recallMemories } from "@/lib/memory"
 import { env } from "@/lib/env";
 
 export async function GET() {
@@ -10,22 +10,21 @@ export async function GET() {
         groqConfigured = false;
     }
 
-    let hindsightOk = false
-    let hindsightError = ""
+    let memoryOk = false
+    let memoryError = ""
     try {
-        await retainMemory("campus_knowledge", "health check ping", "system")
-        await recallMemories("campus_knowledge", "health check")
-        hindsightOk = true
+        await retainMemory("health-check", "health check ping", "system")
+        await recallMemories("health-check", "health check")
+        memoryOk = true
     } catch (e: any) {
-        hindsightError = e.message
+        memoryError = e.message
     }
 
     return NextResponse.json({
-        ok: hindsightOk,
-        hindsightConnected: hindsightOk,
-        hindsightError: hindsightError || null,
+        ok: memoryOk,
+        memoryConnected: memoryOk,
+        memoryError: memoryError || null,
         groqConfigured,
-        baseUrl: env.HINDSIGHT_BASE_URL,
         timestamp: new Date().toISOString()
     })
 }

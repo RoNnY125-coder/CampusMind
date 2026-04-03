@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { retainMemory, recallMemories, CAMPUS_BANK } from '@/lib/hindsight';
+import { retainMemory, recallMemories } from '@/lib/memory';
 import { CAMPUS_DATA } from '@/lib/campus-data';
 
 export async function POST() {
   try {
     // Check if already seeded
-    const existing = await recallMemories(CAMPUS_BANK, 'college');
+    const existing = await recallMemories('campus_shared', 'college');
 
     if (existing.length > 0) {
       return NextResponse.json({ alreadySeeded: true, count: existing.length });
@@ -14,7 +14,7 @@ export async function POST() {
     // Seed all campus data
     const results = await Promise.allSettled(
       CAMPUS_DATA.map((item) =>
-        retainMemory(CAMPUS_BANK, item, 'world')
+        retainMemory('campus_shared', item, 'world')
       )
     );
 

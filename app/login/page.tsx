@@ -65,7 +65,6 @@ export default function LoginPage() {
         .single();
 
       router.push(row?.has_onboarded ? "/chat" : "/onboard");
-      router.refresh();
     } catch (err) {
       console.error("[login] unexpected:", err);
       setError(err instanceof Error ? err.message : "Something went wrong");

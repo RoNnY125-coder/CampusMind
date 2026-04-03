@@ -14,8 +14,8 @@ export const env = {
   get GROQ_API_KEY() {
     return requireServerEnv("GROQ_API_KEY");
   },
-  get HINDSIGHT_API_KEY() {
-    return requireServerEnv("HINDSIGHT_API_KEY");
+  get MEM0_API_KEY() {
+    return requireServerEnv("MEM0_API_KEY");
   },
   get SUPABASE_SERVICE_ROLE_KEY() {
     return requireServerEnv("SUPABASE_SERVICE_ROLE_KEY");
@@ -29,8 +29,5 @@ export const env = {
     return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
   },
 
-  // Optional
-  get HINDSIGHT_BASE_URL() {
-    return optionalEnv("HINDSIGHT_BASE_URL", "https://api.hindsight.vectorize.io");
-  },
+
 } as const;

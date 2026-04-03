@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { retainMemory, studentBank } from "@/lib/hindsight";
+import { retainMemory } from "@/lib/memory";
 import { supabaseServer } from "@/lib/supabase-server";
 
 export async function POST(request: Request) {
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     ];
 
     const results = await Promise.allSettled(
-      memoriesToRetain.map((memory) => retainMemory(studentBank(userId), memory.content, memory.type))
+      memoriesToRetain.map((memory) => retainMemory(userId, memory.content, memory.type))
     );
 
     const failed = results.filter((result) => result.status === "rejected");

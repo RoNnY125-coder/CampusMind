@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic"
 
 import { NextResponse } from 'next/server';
 import Groq from "groq-sdk"
-import { recallMemories, retainMemory, studentBank, CAMPUS_BANK } from '@/lib/hindsight';
+import { recallMemories, retainMemory } from '@/lib/memory';
 import { buildSystemPrompt } from '@/lib/groq';
 import { getOrCreateSession, getSessionMessages, saveMessage, updateSessionTitle } from '@/lib/chat-db';
 import { env } from '@/lib/env';
@@ -32,21 +32,13 @@ export async function POST(request: Request) {
 
     await saveMessage(session.id, userId, 'user', message);
 
-    const dbHistory = history.length === 0 ? await getSessionMessages(session.id, 40) : history;
+    const dbHistory = await getSessionMessages(session.id, 40);
 
     // Parallel recall from both banks
-    const [profileMems, contextMems, campusMems] = await Promise.all([
-      recallMemories(studentBank(userId), 'profile student name branch year interests'),
-      recallMemories(studentBank(userId), message),
-      recallMemories(CAMPUS_BANK, message),
+    const [studentMems, campusMems] = await Promise.all([
+      recallMemories(userId, message),
+      recallMemories('campus_shared', message),
     ]);
-
-    // Deduplicate student memories (union of a + b by id)
-    const studentMemoriesMap = new Map();
-    [...profileMems, ...contextMems].forEach((m) => {
-      studentMemoriesMap.set(m.id, m);
-    });
-    const studentMems = Array.from(studentMemoriesMap.values());
 
     // Build system prompt with memories
     const systemPrompt = buildSystemPrompt(studentMems, campusMems);
@@ -84,7 +76,7 @@ export async function POST(request: Request) {
           controller.close();
           Promise.all([
             saveMessage(session.id, userId, 'assistant', fullResponse),
-            retainMemory(studentBank(userId), `Student asked: ${message}`, 'chat'),
+            retainMemory(userId, `Student asked: ${message}`, 'chat'),
           ]).catch((e) => console.error('Post-stream save error:', e));
         }
       }
