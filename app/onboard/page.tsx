@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSupabaseAuth } from "@/components/SupabaseAuthProvider";
-import { supabase } from "@/lib/supabase";
-import { ensureStudentProfile } from "@/lib/auth-helpers";
+import { useSession } from "next-auth/react";
 
 interface FormData {
   name: string;
@@ -58,12 +56,10 @@ const TOTAL_STEPS = 4;
 
 export default function OnboardPage() {
   const router = useRouter();
-  const { user, session, loading, refreshSession } = useSupabaseAuth();
+  const { data: session, status, update } = useSession();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isBooting, setIsBooting] = useState(true);
   const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
   const [formData, setFormData] = useState<FormData>({
     name: "",
     year: "",
@@ -73,83 +69,12 @@ export default function OnboardPage() {
   });
 
   useEffect(() => {
-    let mounted = true;
-
-    const boot = async () => {
-      if (loading) return;
-
-      console.log("[onboard] boot start");
-      let activeSession = session;
-
-      if (!activeSession?.access_token) {
-        console.log("[onboard] no session in context, refreshing");
-        activeSession = await refreshSession();
-      }
-
-      if (!activeSession?.access_token || !user) {
-        console.log("[onboard] no active session, redirecting to login");
-        router.replace("/login");
-        return;
-      }
-
-      const results = await Promise.allSettled([
-        ensureStudentProfile(activeSession.access_token),
-        supabase
-          .from("students")
-          .select("name, year, branch, interests, clubs, has_onboarded")
-          .eq("id", user.id)
-          .maybeSingle(),
-      ]);
-
-      if (!mounted) return;
-
-      const [ensureResult, profileResult] = results;
-
-      if (ensureResult.status === "rejected" || (ensureResult.status === "fulfilled" && !ensureResult.value.ok)) {
-        console.error("[onboard] ensure profile failed:", ensureResult);
-        setInfo("We could not verify your profile yet. You can still continue.");
-      }
-
-      if (profileResult.status === "rejected") {
-        console.error("[onboard] profile fetch crashed:", profileResult.reason);
-        setInfo("We could not load your saved onboarding data. You can still continue.");
-      } else if (profileResult.value.error) {
-        console.error("[onboard] profile fetch failed:", profileResult.value.error.message);
-        setInfo("We could not load your saved onboarding data. You can still continue.");
-      } else if (profileResult.value.data) {
-        const row = profileResult.value.data;
-        console.log("[onboard] profile loaded", row);
-
-        if (row.has_onboarded) {
-          router.replace("/chat");
-          return;
-        }
-
-        setFormData((prev) => ({
-          ...prev,
-          name: row.name ?? prev.name,
-          year: row.year ?? prev.year,
-          branch: row.branch ?? prev.branch,
-          interests: Array.isArray(row.interests) ? row.interests : prev.interests,
-          clubs: Array.isArray(row.clubs) ? row.clubs : prev.clubs,
-        }));
-      }
-
-      console.log("[onboard] boot complete");
-      setIsBooting(false);
-    };
-
-    void boot().catch((bootError) => {
-      console.error("[onboard] boot fatal:", bootError);
-      if (!mounted) return;
-      setError("We could not initialize onboarding. Please refresh and try again.");
-      setIsBooting(false);
-    });
-
-    return () => {
-      mounted = false;
-    };
-  }, [loading, refreshSession, router, session, user]);
+    if (status === "loading") return;
+    if (status === "unauthenticated") {
+      console.log("[onboard] unauthenticated, redirecting to login");
+      router.push("/login");
+    }
+  }, [status, router]);
 
   const canProceed = () => {
     if (step === 1) return formData.name.trim() !== "" && formData.year !== "";
@@ -179,23 +104,16 @@ export default function OnboardPage() {
     setError("");
 
     try {
-      let activeSession = session;
-      if (!activeSession?.access_token) {
-        console.log("[onboard] submit: refreshing session");
-        activeSession = await refreshSession();
-      }
-
-      if (!activeSession?.access_token) {
-        throw new Error("Your session is not ready yet. Please try again.");
+      const userId = (session?.user as any)?.id;
+      if (!userId) {
+        router.push("/login");
+        return;
       }
 
       const res = await fetch("/api/onboard", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${activeSession.access_token}`,
-        },
-        body: JSON.stringify(formData),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formData, userId }),
       });
 
       const payload = (await res.json().catch(() => ({}))) as { error?: string };
@@ -203,8 +121,9 @@ export default function OnboardPage() {
         throw new Error(payload.error ?? "Onboarding failed");
       }
 
+      await update({ hasOnboarded: true });
       console.log("[onboard] submit complete");
-      router.push("/chat");
+      window.location.href = "/chat";
     } catch (submitError) {
       console.error("[onboard] submit error:", submitError);
       setError(submitError instanceof Error ? submitError.message : "Something went wrong. Please try again.");
@@ -213,7 +132,7 @@ export default function OnboardPage() {
     }
   };
 
-  if (loading || isBooting) {
+  if (status === "loading") {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
@@ -221,7 +140,7 @@ export default function OnboardPage() {
     );
   }
 
-  if (!user || !session) {
+  if (status === "unauthenticated" || !session) {
     return null;
   }
 
@@ -296,12 +215,6 @@ export default function OnboardPage() {
               {error}
             </div>
           )}
-          {info && (
-            <div className="mb-4 rounded-xl border border-blue-400/20 bg-blue-400/10 px-4 py-3 text-sm text-blue-200">
-              {info}
-            </div>
-          )}
-
           <AnimatePresence mode="wait">
             <motion.div
               key={step}

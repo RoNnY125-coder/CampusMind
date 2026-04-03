@@ -101,7 +101,7 @@ const handler = NextAuth({
     },
     async session({ session, token }: any) {
       if (session.user) {
-        session.user.id       = token.id;
+        session.user.id       = token.id || token.sub;
         session.hasOnboarded  = token.hasOnboarded ?? false;
       }
       return session;
