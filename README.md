@@ -195,7 +195,7 @@ GROQ_API_KEY=your_groq_api_key
 # Supabase — https://supabase.com/dashboard → Settings → API
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key   # ⚠️ never expose this
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key   
 
 # NextAuth
 NEXTAUTH_SECRET=your_random_secret                # openssl rand -base64 32
