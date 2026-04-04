@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Basic secret guard. Prefer gitleaks if installed; fall back to a regex scan.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --verbose
+  exit 0
+fi
+
+PATTERN='(AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|xox[baprs]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z_-]{35}|sk-[A-Za-z0-9]{20,}|-----BEGIN(.*)PRIVATE KEY-----|SUPABASE_SERVICE_ROLE_KEY|GROQ_API_KEY|MEM0_API_KEY)'
+
+if git diff --cached -U0 | grep -E -n "$PATTERN" >/dev/null; then
+  echo "Secret-like pattern detected in staged changes."
+  echo "Commit aborted. Remove secrets or use environment variables."
+  exit 1
+fi
