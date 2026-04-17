@@ -86,6 +86,7 @@ export default function ChatWindow({
       } catch (error) {
         console.error("[chat-window] failed to load chat history", error);
       }
+      }
     };
 
     void loadMessages();
