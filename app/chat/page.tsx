@@ -13,6 +13,7 @@ export default function ChatPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [studentName, setStudentName] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -24,6 +25,16 @@ export default function ChatPage() {
       setUserId((session.user as any).id);
     }
   }, [status, session, router]);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`/api/student-profile?userId=${userId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.name) setStudentName(data.name);
+      })
+      .catch(() => {});
+  }, [userId]);
 
   if (status === "loading" || !userId) {
     return (
@@ -60,6 +71,7 @@ export default function ChatPage() {
         <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
           <ChatWindow
             userId={userId}
+            studentName={studentName}
             onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
             sessionId={activeSessionId}
             onSessionCreated={(sessionId) => setActiveSessionId(sessionId)}

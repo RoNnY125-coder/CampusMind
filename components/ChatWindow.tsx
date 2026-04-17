@@ -12,6 +12,7 @@ interface Message {
 
 interface ChatWindowProps {
   userId: string;
+  studentName?: string | null;
   onToggleSidebar?: () => void;
   sessionId?: string | null;
   onSessionCreated?: (sessionId: string) => void;
@@ -25,6 +26,7 @@ const SUGGESTIONS = [
 
 export default function ChatWindow({
   userId,
+  studentName,
   onToggleSidebar,
   sessionId: externalSessionId,
   onSessionCreated,
@@ -232,7 +234,9 @@ export default function ChatWindow({
               className="flex flex-col items-center justify-center h-full gap-8"
             >
               <div>
-                <p className="text-white text-2xl text-center font-medium">Welcome to CampusMind</p>
+                <p className="text-white text-2xl text-center font-medium">
+                  {studentName ? `Welcome back, ${studentName.split(" ")[0]} 👋` : "Welcome to CampusMind"}
+                </p>
                 <p className="text-gray-400 text-sm text-center mt-2">Your AI campus assistant</p>
               </div>
               <div className="flex flex-wrap justify-center gap-3 max-w-2xl">

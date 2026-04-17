@@ -4,9 +4,17 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 import { getOrCreateSession, getSessionMessages, saveMessage, updateSessionTitle } from "@/lib/chat-db";
+import { getStudentProfile } from "@/lib/student-profile";
 import type { ChatRequest } from "@/lib/types";
 
-const systemPrompt = `You are CampusMind, a warm and intelligent AI assistant for college students in India.
+function buildSystemPrompt(profile: {
+  name: string;
+  year: string;
+  branch: string;
+  interests: string[];
+  clubs: string[];
+} | null): string {
+  const base = `You are CampusMind, a warm and intelligent AI assistant for college students in India.
 You help students with academics, campus life, clubs, events, career advice, and general queries.
 
 RULES:
@@ -15,7 +23,27 @@ RULES:
 3. For academic questions, give practical actionable advice.
 4. End each response with one relevant follow-up question to keep the conversation going.
 5. If asked about events or deadlines, remind them to check their college notice board.
-6. You support students across all branches: CSE, ECE, Mechanical, Civil, IT, MBA and more.`;
+6. You support students across all branches: CSE, ECE, Mechanical, Civil, IT, MBA and more.
+7. IMPORTANT: You already know the student's profile. NEVER ask for their name, year, branch, interests, or clubs. Use this information naturally in your responses.`;
+
+  if (!profile) return base;
+
+  const interestsList = profile.interests.length > 0 ? profile.interests.join(", ") : "not specified";
+  const clubsList = profile.clubs.length > 0 ? profile.clubs.join(", ") : "none mentioned";
+
+  const profileSection = `
+
+STUDENT PROFILE (use this to personalize every response):
+- Name: ${profile.name}
+- Year: ${profile.year}
+- Branch: ${profile.branch}
+- Interests: ${interestsList}
+- Clubs: ${clubsList}
+
+You already know all of the above. Address the student by their first name occasionally to make it feel personal. Tailor your advice to their branch and interests. Do NOT ask for information that is already in the profile above.`;
+
+  return base + profileSection;
+}
 
 export async function POST(request: Request) {
   try {
@@ -30,6 +58,10 @@ export async function POST(request: Request) {
     }
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+    // Fetch student profile to personalize the system prompt
+    const profile = await getStudentProfile(userId);
+
     const session = await getOrCreateSession(userId, sessionId);
 
     if (!sessionId) {
@@ -45,7 +77,9 @@ export async function POST(request: Request) {
         ? dbHistory.map((msg) => ({ role: msg.role, content: msg.content }))
         : history.map((msg) => ({ role: msg.role, content: msg.content }));
 
-    console.log("[chat] request start", { userId, sessionId: session.id, history: promptHistory.length });
+    const systemPrompt = buildSystemPrompt(profile);
+
+    console.log("[chat] request start", { userId, sessionId: session.id, history: promptHistory.length, profileLoaded: !!profile });
 
     const chatCompletion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
