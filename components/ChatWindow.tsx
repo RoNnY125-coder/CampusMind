@@ -34,6 +34,7 @@ export default function ChatWindow({
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(externalSessionId ?? null);
+  const createdSessionIdRef = useRef<string | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -44,7 +45,13 @@ export default function ChatWindow({
 
     const loadMessages = async () => {
       if (externalSessionId) {
+        if (externalSessionId === createdSessionIdRef.current) {
+          console.log("[chat-window] skipping initial DB load for newly created local session", externalSessionId);
+          return;
+        }
+
         console.log("[chat-window] loading DB session", externalSessionId);
+        createdSessionIdRef.current = null;
         setMessages([]);
         setCurrentSessionId(externalSessionId);
 
@@ -64,15 +71,15 @@ export default function ChatWindow({
         }
 
         return;
-      }
-
-      console.log("[chat-window] loading local draft chat");
-      setCurrentSessionId(null);
-      const saved = localStorage.getItem(`campusmind_chat_${userId}`);
-      if (!saved) {
-        setMessages([]);
-        return;
-      }
+      } else {
+        console.log("[chat-window] loading local draft chat");
+        setCurrentSessionId(null);
+        createdSessionIdRef.current = null;
+        const saved = localStorage.getItem(`campusmind_chat_${userId}`);
+        if (!saved) {
+          setMessages([]);
+          return;
+        }
 
       try {
         setMessages(JSON.parse(saved));
@@ -138,6 +145,7 @@ export default function ChatWindow({
         const newSessionId = response.headers.get("X-Session-Id");
         if (newSessionId && !currentSessionId) {
           console.log("[chat-window] created session", newSessionId);
+          createdSessionIdRef.current = newSessionId;
           setCurrentSessionId(newSessionId);
           onSessionCreated?.(newSessionId);
           localStorage.removeItem(`campusmind_chat_${userId}`);
