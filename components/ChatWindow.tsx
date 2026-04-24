@@ -19,9 +19,13 @@ interface ChatWindowProps {
 }
 
 const SUGGESTIONS = [
-  "What events are happening this week?",
-  "Help me prepare for my exams",
-  "What clubs should I join?",
+  { label: "AI & ML", text: "I love AI and machine learning" },
+  { label: "Web Dev", text: "I am into coding and web development" },
+  { label: "Music & Dance", text: "I love music and dance" },
+  { label: "Entrepreneurship", text: "I want to start my own startup" },
+  { label: "Cybersecurity", text: "I am interested in cybersecurity" },
+  { label: "Photography", text: "I love photography and filmmaking" },
+  { label: "All Clubs", text: "Show me all clubs by category" },
 ];
 
 export default function ChatWindow({
@@ -242,12 +246,12 @@ export default function ChatWindow({
               <div className="flex flex-wrap justify-center gap-3 max-w-2xl">
                 {SUGGESTIONS.map((chip, index) => (
                   <button
-                    key={chip}
-                    onClick={() => void handleSend(chip)}
+                    key={chip.label}
+                    onClick={() => void handleSend(chip.text)}
                     className="rounded-full px-5 py-2.5 text-sm text-gray-200 cursor-pointer transition-all border border-white/10 bg-gray-900/80 hover:-translate-y-0.5 hover:border-blue-500/30 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
-                    {chip}
+                    {chip.label}
                   </button>
                 ))}
               </div>
