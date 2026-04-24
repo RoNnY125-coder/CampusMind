@@ -10,11 +10,13 @@ import type { ChatRequest } from "@/lib/types";
 function buildSystemPrompt(profile: {
   name: string;
   year: string;
+  college: string;
   branch: string;
   interests: string[];
   clubs: string[];
 } | null): string {
-  const base = `You are CampusMind, an intelligent campus assistant for VIT Bhopal University. Your job is to help students discover the best clubs, chapters, and communities based on their personal interests, hobbies, skills, and goals.
+  const collegeName = profile?.college || "VIT Bhopal University";
+  const base = `You are CampusMind, an intelligent campus assistant for ${collegeName}. Your job is to help students discover the best clubs, chapters, and communities based on their personal interests, hobbies, skills, and goals.
 
 You have complete knowledge of all VIT Bhopal clubs stored in your knowledge base. 
 
@@ -42,11 +44,12 @@ ${JSON.stringify([{"name":"AIEM Club","cat":"Technical","desc":"Advanced Intelli
 STUDENT PROFILE:
 - Name: ${profile.name}
 - Year: ${profile.year}
+- College: ${profile.college}
 - Branch: ${profile.branch}
 - Interests: ${interestsList}
 - Clubs: ${clubsList}
 
-Address the student by their first name occasionally. Tailor your advice to their branch and interests.`;
+Address the student by their first name occasionally. Tailor your advice to their college, branch and interests.`;
 
   return base + profileSection;
 }

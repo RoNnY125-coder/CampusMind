@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 export interface StudentProfile {
   name: string;
   year: string;
+  college: string;
   branch: string;
   interests: string[];
   clubs: string[];
@@ -19,7 +20,7 @@ export async function getStudentProfile(userId: string): Promise<StudentProfile 
 
     const { data, error } = await db
       .from("students")
-      .select("name, year, branch, interests, clubs, has_onboarded")
+      .select("name, year, college, branch, interests, clubs, has_onboarded")
       .eq("id", userId)
       .single();
 
@@ -28,6 +29,7 @@ export async function getStudentProfile(userId: string): Promise<StudentProfile 
     return {
       name: data.name,
       year: data.year,
+      college: data.college || "VIT Bhopal",
       branch: data.branch,
       interests: Array.isArray(data.interests) ? data.interests : [],
       clubs: Array.isArray(data.clubs) ? data.clubs : [],

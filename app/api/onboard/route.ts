@@ -3,9 +3,9 @@ import { createClient } from '@supabase/supabase-js';
  
 export async function POST(request: Request) {
   try {
-    const { name, year, branch, interests, clubs, userId } = await request.json();
+    const { name, year, college, branch, interests, clubs, userId } = await request.json();
  
-    if (!userId || !name || !branch) {
+    if (!userId || !name || !college || !branch) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
  
@@ -23,6 +23,7 @@ export async function POST(request: Request) {
           id:            userId,
           name,
           year,
+          college,
           branch,
           interests,
           clubs,

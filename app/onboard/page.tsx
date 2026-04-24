@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 interface FormData {
   name: string;
   year: string;
+  college: string;
   branch: string;
   interests: string[];
   clubs: string[];
@@ -133,7 +134,7 @@ const CLUBS = [
   { name: "Cisco Community", description: "Networking, technical and professional skills via Cisco partnership." },
 ];
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
 export default function OnboardPage() {
   const router = useRouter();
@@ -144,6 +145,7 @@ export default function OnboardPage() {
   const [formData, setFormData] = useState<FormData>({
     name: "",
     year: "",
+    college: "",
     branch: "",
     interests: [],
     clubs: [],
@@ -159,8 +161,9 @@ export default function OnboardPage() {
 
   const canProceed = () => {
     if (step === 1) return formData.name.trim() !== "" && formData.year !== "";
-    if (step === 2) return formData.branch !== "";
-    if (step === 3) return formData.interests.length > 0;
+    if (step === 2) return formData.college !== "";
+    if (step === 3) return formData.branch !== "";
+    if (step === 4) return formData.interests.length > 0;
     return true;
   };
 
@@ -340,6 +343,45 @@ export default function OnboardPage() {
 
               {step === 2 && (
                 <div className="space-y-5">
+                  <h3 className="text-white text-xl font-semibold">Where do you study?</h3>
+                  <div className="grid gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, college: "VIT Bhopal" }))}
+                      className="w-full rounded-xl border p-4 text-left transition-all hover:scale-[1.02]"
+                      style={{
+                        background: formData.college === "VIT Bhopal" ? "rgba(59,130,246,0.2)" : "rgba(255,255,255,0.05)",
+                        borderColor: formData.college === "VIT Bhopal" ? "rgba(59,130,246,0.6)" : "rgba(255,255,255,0.1)",
+                        boxShadow: formData.college === "VIT Bhopal" ? "0 0 16px rgba(59,130,246,0.15)" : "none",
+                      }}
+                    >
+                      <p className="font-semibold text-white">VIT Bhopal University</p>
+                      <p className="text-gray-400 text-xs mt-1">Vellore Institute of Technology, Bhopal Campus</p>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full rounded-xl border border-white/5 bg-white/5 p-4 text-left opacity-40 cursor-not-allowed"
+                    >
+                      <p className="font-semibold text-gray-300">SRM Institute of Science and Technology</p>
+                      <p className="text-gray-500 text-xs mt-1">More colleges coming soon...</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full rounded-xl border border-white/5 bg-white/5 p-4 text-left opacity-40 cursor-not-allowed"
+                    >
+                      <p className="font-semibold text-gray-300">BITS Pilani</p>
+                      <p className="text-gray-500 text-xs mt-1">More colleges coming soon...</p>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
+                <div className="space-y-5">
                   <h3 className="text-white text-xl font-semibold">Your department</h3>
                   <div>
                     <label className="text-gray-300 text-sm block mb-2 font-medium">Branch</label>
@@ -362,7 +404,7 @@ export default function OnboardPage() {
                 </div>
               )}
 
-              {step === 3 && (
+              {step === 4 && (
                 <div className="space-y-4">
                   <h3 className="text-white text-xl font-semibold">What are you into?</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -392,34 +434,38 @@ export default function OnboardPage() {
                 </div>
               )}
 
-              {step === 4 && (
+              {step === 5 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-white text-xl font-semibold">Clubs and communities</h3>
-                    <span className="text-blue-400 text-xs">{formData.clubs.length} selected</span>
+                    <span className="text-blue-400 text-xs font-semibold px-2 py-1 bg-blue-500/10 rounded-full">{formData.clubs.length} selected</span>
                   </div>
-                  <p className="text-gray-500 text-xs -mt-2">A larger list, styled to match the rest of the app.</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
+                  <p className="text-gray-400 text-sm">Select the clubs you are a part of, or interested in joining.</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
                     {CLUBS.map((club) => (
                       <button
                         key={club.name}
                         type="button"
                         onClick={() => toggleClub(club.name)}
-                        className="rounded-xl border p-4 text-left transition-all hover:scale-[1.02]"
+                        className="rounded-xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg"
                         style={{
                           background: formData.clubs.includes(club.name)
-                            ? "rgba(59,130,246,0.2)"
-                            : "rgba(255,255,255,0.03)",
+                            ? "rgba(59,130,246,0.15)"
+                            : "rgba(255,255,255,0.05)",
                           borderColor: formData.clubs.includes(club.name)
                             ? "rgba(59,130,246,0.6)"
                             : "rgba(255,255,255,0.1)",
                           boxShadow: formData.clubs.includes(club.name)
-                            ? "0 0 16px rgba(59,130,246,0.15)"
+                            ? "0 4px 20px rgba(59,130,246,0.2)"
                             : "none",
                         }}
                       >
-                        <p className="font-medium text-sm text-white">{club.name}</p>
-                        <p className="text-gray-400 text-xs mt-1 leading-relaxed">{club.description}</p>
+                        <p className={formData.clubs.includes(club.name) ? "font-semibold text-blue-300" : "font-medium text-white"}>
+                          {club.name}
+                        </p>
+                        <p className={formData.clubs.includes(club.name) ? "text-blue-100 text-xs mt-1.5 leading-relaxed" : "text-gray-300 text-xs mt-1.5 leading-relaxed"}>
+                          {club.description}
+                        </p>
                       </button>
                     ))}
                   </div>
@@ -428,12 +474,12 @@ export default function OnboardPage() {
             </motion.div>
           </AnimatePresence>
 
-          <div className="flex items-center justify-between mt-8">
+          <div className="flex items-center justify-between mt-8 pt-4 border-t border-white/10">
             {step > 1 ? (
               <button
                 type="button"
                 onClick={() => setStep((current) => current - 1)}
-                className="text-gray-400 hover:text-white text-sm font-medium transition-colors px-4 py-2 rounded-lg hover:bg-white/5"
+                className="text-gray-300 hover:text-white text-sm font-medium transition-colors px-4 py-2 rounded-lg hover:bg-white/5"
               >
                 ← Back
               </button>
@@ -446,8 +492,8 @@ export default function OnboardPage() {
                 type="button"
                 onClick={() => setStep((current) => current + 1)}
                 disabled={!canProceed()}
-                className="text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-all disabled:opacity-30 hover:opacity-90"
-                style={{ background: "linear-gradient(135deg, #3b82f6, #06b6d4)" }}
+                className="text-white text-sm font-bold px-8 py-3 rounded-xl transition-all disabled:opacity-30 hover:opacity-90 shadow-lg hover:shadow-blue-500/25"
+                style={{ background: "linear-gradient(135deg, #2563eb, #0891b2)" }}
               >
                 Next →
               </button>
@@ -456,15 +502,40 @@ export default function OnboardPage() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-all disabled:opacity-50 hover:opacity-90"
-                style={{ background: "linear-gradient(135deg, #3b82f6, #06b6d4)" }}
+                className="text-white text-sm font-bold px-8 py-3 rounded-xl transition-all disabled:opacity-50 hover:opacity-90 shadow-lg hover:shadow-blue-500/25 flex items-center gap-2"
+                style={{ background: "linear-gradient(135deg, #2563eb, #0891b2)" }}
               >
-                {isSubmitting ? "Setting up..." : "Let's Go!"}
+                {isSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Setting up...
+                  </>
+                ) : (
+                  "Let's Go!"
+                )}
               </button>
             )}
           </div>
         </motion.div>
       </div>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.02);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+      `}</style>
     </div>
   );
 }
+
