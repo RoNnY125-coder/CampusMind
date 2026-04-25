@@ -13,6 +13,7 @@ export default function OnboardPage() {
   const [error, setError] = useState('');
   const [submittedOnce, setSubmittedOnce] = useState(false);
   const [step, setStep] = useState(1);
+  const [direction, setDirection] = useState(1);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -45,10 +46,12 @@ export default function OnboardPage() {
     if (step === 3 && !formData.year) return;
     
     setSubmittedOnce(false);
+    setDirection(1);
     setStep(prev => prev + 1);
   };
 
   const handleBack = () => {
+    setDirection(-1);
     setStep(prev => prev - 1);
     setSubmittedOnce(false);
   };
@@ -108,9 +111,9 @@ export default function OnboardPage() {
   }
 
   const slideVariants = {
-    initial: { opacity: 0, x: 20 },
+    initial: (dir: number) => ({ opacity: 0, x: dir * 200 }),
     animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -20 }
+    exit: (dir: number) => ({ opacity: 0, x: dir * -200 })
   };
 
   return (
@@ -123,7 +126,6 @@ export default function OnboardPage() {
         style={{ margin: 0, overflow: 'hidden' }}
       >
         <div className="form-logo-row">
-          <div className="form-logo-mark">CM</div>
           <div className="form-logo-text">Step {step} of 4</div>
         </div>
         
@@ -141,9 +143,9 @@ export default function OnboardPage() {
           ))}
         </div>
 
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" custom={direction}>
           {step === 1 && (
-            <motion.div key="step1" variants={slideVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
+            <motion.div key="step1" custom={direction} variants={slideVariants} initial="initial" animate="animate" exit="exit" transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
               <h2 style={{ color: 'var(--text)', fontSize: '20px', marginBottom: '8px', fontWeight: '500' }}>What's your name?</h2>
               <p className="form-subtitle">Let's get to know each other.</p>
               
@@ -165,7 +167,7 @@ export default function OnboardPage() {
           )}
 
           {step === 2 && (
-            <motion.div key="step2" variants={slideVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
+            <motion.div key="step2" custom={direction} variants={slideVariants} initial="initial" animate="animate" exit="exit" transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
               <h2 style={{ color: 'var(--text)', fontSize: '20px', marginBottom: '8px', fontWeight: '500' }}>Where do you study?</h2>
               <p className="form-subtitle">We'll tailor campus events for you.</p>
 
@@ -203,7 +205,7 @@ export default function OnboardPage() {
           )}
 
           {step === 3 && (
-            <motion.div key="step3" variants={slideVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
+            <motion.div key="step3" custom={direction} variants={slideVariants} initial="initial" animate="animate" exit="exit" transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
               <h2 style={{ color: 'var(--text)', fontSize: '20px', marginBottom: '8px', fontWeight: '500' }}>What year are you in?</h2>
               <p className="form-subtitle">To recommend relevant academic materials.</p>
 
@@ -229,7 +231,7 @@ export default function OnboardPage() {
           )}
 
           {step === 4 && (
-            <motion.div key="step4" variants={slideVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
+            <motion.div key="step4" custom={direction} variants={slideVariants} initial="initial" animate="animate" exit="exit" transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
               <h2 style={{ color: 'var(--text)', fontSize: '20px', marginBottom: '8px', fontWeight: '500' }}>Clubs of Interest</h2>
               <p className="form-subtitle">Select clubs you are part of or interested in.</p>
 

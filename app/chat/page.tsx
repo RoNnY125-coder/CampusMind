@@ -14,6 +14,7 @@ export default function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [studentName, setStudentName] = useState<string | null>(null);
+  const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -36,6 +37,11 @@ export default function ChatPage() {
       .catch(() => {});
   }, [userId]);
 
+  const handleChatCleared = () => {
+    setActiveSessionId(null);
+    setSidebarRefreshKey((prev) => prev + 1);
+  };
+
   if (status === "loading" || !userId) {
     return (
       <div className="h-screen flex items-center justify-center bg-black text-white">
@@ -57,6 +63,7 @@ export default function ChatPage() {
         >
           <MemorySidebar
             userId={userId}
+            refreshKey={sidebarRefreshKey}
             onSessionSelect={(sessionId) => {
               setActiveSessionId(sessionId);
               setIsSidebarOpen(false);
@@ -75,9 +82,11 @@ export default function ChatPage() {
             onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
             sessionId={activeSessionId}
             onSessionCreated={(sessionId) => setActiveSessionId(sessionId)}
+            onChatCleared={handleChatCleared}
           />
         </main>
       </div>
     </ErrorBoundary>
   );
 }
+

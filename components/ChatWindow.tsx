@@ -17,6 +17,7 @@ interface ChatWindowProps {
   onToggleSidebar?: () => void;
   sessionId?: string | null;
   onSessionCreated?: (sessionId: string) => void;
+  onChatCleared?: () => void;
 }
 
 export default function ChatWindow({
@@ -25,6 +26,7 @@ export default function ChatWindow({
   onToggleSidebar,
   sessionId: externalSessionId,
   onSessionCreated,
+  onChatCleared,
 }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -210,7 +212,13 @@ export default function ChatWindow({
     }
   };
 
-  const handleClearChat = () => {
+  const handleClearChat = async () => {
+    // Delete all sessions & messages from the database
+    try {
+      await fetch(`/api/sessions?userId=${encodeURIComponent(userId)}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error('[chat] failed to delete sessions:', e);
+    }
     localStorage.removeItem(`campusmind_chat_${userId}`);
     setCurrentSessionId(null);
     createdSessionIdRef.current = null;
@@ -219,6 +227,8 @@ export default function ChatWindow({
     } else {
       setMessages([]);
     }
+    // Notify parent so sidebar refreshes
+    onChatCleared?.();
   };
 
   const confirmSignOut = async () => {
@@ -240,7 +250,6 @@ export default function ChatWindow({
     <div className="flex flex-col h-screen" style={{ background: "var(--bg)" }}>
       {/* Header */}
       <header className="chat-header">
-        <div className="chat-header-logo">CM</div>
         <div>
           <h1 className="chat-header-title">CampusMind</h1>
           <p className="chat-header-sub">

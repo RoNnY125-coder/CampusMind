@@ -70,3 +70,33 @@ export async function updateSessionTitle(sessionId: string, title: string) {
     .update({ title, updated_at: new Date().toISOString() })
     .eq("id", sessionId);
 }
+
+export async function deleteSession(sessionId: string, studentId: string) {
+  const db = supabaseServer();
+  // Delete messages first (foreign key dependency)
+  await db
+    .from("chat_messages")
+    .delete()
+    .eq("session_id", sessionId)
+    .eq("student_id", studentId);
+  // Then delete the session
+  await db
+    .from("chat_sessions")
+    .delete()
+    .eq("id", sessionId)
+    .eq("student_id", studentId);
+}
+
+export async function deleteAllSessions(studentId: string) {
+  const db = supabaseServer();
+  // Delete all messages for this student
+  await db
+    .from("chat_messages")
+    .delete()
+    .eq("student_id", studentId);
+  // Then delete all sessions
+  await db
+    .from("chat_sessions")
+    .delete()
+    .eq("student_id", studentId);
+}

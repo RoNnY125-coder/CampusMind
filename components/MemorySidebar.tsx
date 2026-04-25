@@ -18,6 +18,7 @@ interface ChatSession {
 
 interface MemorySidebarProps {
   userId: string;
+  refreshKey?: number;
   onSessionSelect?: (sessionId: string) => void;
 }
 
@@ -31,7 +32,7 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export default function MemorySidebar({ userId, onSessionSelect }: MemorySidebarProps) {
+export default function MemorySidebar({ userId, refreshKey, onSessionSelect }: MemorySidebarProps) {
   const [tab, setTab] = useState<"memory" | "chats">("memory");
   const [memories, setMemories] = useState<Memory[]>([]);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -96,6 +97,18 @@ export default function MemorySidebar({ userId, onSessionSelect }: MemorySidebar
     const interval = setInterval(() => void fetchMemories(), 8000);
     return () => clearInterval(interval);
   }, [fetchMemories]);
+
+  // Re-fetch everything when refreshKey changes (e.g., after Clear Chat)
+  useEffect(() => {
+    if (refreshKey === undefined) return;
+    setMemories([]);
+    setSessions([]);
+    prevIdsRef.current = new Set();
+    void fetchMemories();
+    if (tab === "chats") {
+      void fetchSessions();
+    }
+  }, [refreshKey]);
 
   useEffect(() => {
     if (tab === "chats") {
