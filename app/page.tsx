@@ -63,11 +63,11 @@ export default function LandingPage() {
         className="screen-content flex min-h-screen flex-col"
         initial={false}
       >
-        <nav className="glass-navbar flex items-center justify-between px-5 py-4 sm:px-8">
+        <nav className="glass-navbar mx-auto mt-4 flex w-[calc(100%-32px)] max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <button
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="flex items-center gap-3 border-0 bg-transparent text-left text-[15px] font-bold text-[var(--text)]"
+            className="brand-button flex items-center gap-3 border-0 bg-transparent text-left text-[15px] font-bold text-[var(--text)]"
           >
             <span className="brand-mark"><Moon size={15} className="text-[var(--accent2)]" /></span>
             <span className="font-[var(--font-display)]">CAMPUS MIND</span>
@@ -84,26 +84,32 @@ export default function LandingPage() {
           </div>
         </nav>
 
-        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-5 pb-12 text-center sm:px-8">
+        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center px-5 pb-0 text-center sm:px-8">
           <section className="landing-hero flex w-full flex-col items-center justify-center">
             <motion.div
-              className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold text-[var(--accent2)] backdrop-blur-xl"
-              initial={false}
+              className="landing-kicker mb-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-2.5 text-sm font-semibold text-[var(--accent2)] backdrop-blur-xl"
+              initial={{ opacity: 0, y: 18, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 1.1, duration: 0.55, ease: "easeOut" }}
             >
               <Sparkles size={14} />
               AI Powered - Memory First - Campus Native
             </motion.div>
 
             <motion.h1
-              className="max-w-4xl font-[var(--font-display)] text-[clamp(44px,8vw,86px)] font-extrabold leading-[1.04] text-[var(--pearl)]"
-              initial={false}
+              className="landing-title max-w-5xl font-[var(--font-display)] text-[clamp(58px,10vw,128px)] font-extrabold leading-[0.94] text-[var(--pearl)]"
+              initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              transition={{ delay: 1.18, duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
             >
               Your Campus, Remembered
             </motion.h1>
 
             <motion.p
-              className="mt-6 max-w-2xl text-sm leading-7 text-[var(--text2)] sm:text-base"
-              initial={false}
+              className="mt-8 max-w-3xl text-base leading-8 text-[var(--text2)] sm:text-lg"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.32, duration: 0.55, ease: "easeOut" }}
             >
               CampusMind is an AI assistant that keeps your profile, clubs, events, and goals in context so every answer feels made for your college life.
             </motion.p>
@@ -113,7 +119,9 @@ export default function LandingPage() {
               onClick={handleGetStarted}
               disabled={isBusy}
               className="btn btn-primary mt-10 !rounded-full !px-8 !py-4"
-              initial={false}
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.42, duration: 0.5, ease: "easeOut" }}
             >
               {isBusy ? "Loading..." : "Explore Now"}
               <ArrowRight size={17} />
@@ -121,20 +129,32 @@ export default function LandingPage() {
           </section>
 
           <motion.section
-            className="landing-features w-full max-w-3xl"
-            initial={false}
+            className="landing-features w-full max-w-5xl"
+            initial={{ opacity: 0, y: 26 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.58, duration: 0.65, ease: "easeOut" }}
           >
-            <h2 className="mb-5 font-[var(--font-display)] text-2xl font-bold text-[var(--pearl)]">Features</h2>
-            <div className="flex flex-wrap justify-center gap-3">
+            <h2 className="mb-7 font-[var(--font-display)] text-4xl font-bold text-[var(--pearl)] sm:text-5xl">Features</h2>
+            <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
               {features.map(({ icon: Icon, label }) => (
-                <div key={label} className="landing-feature-card flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold">
-                  <Icon size={16} className="text-[var(--accent2)]" />
+                <div key={label} className="landing-feature-card flex min-h-[132px] flex-col items-center justify-center gap-4 px-5 py-6 text-base font-semibold">
+                  <span className="feature-icon-shell">
+                    <Icon size={24} className="text-[var(--accent2)]" />
+                  </span>
                   <span>{label}</span>
                 </div>
               ))}
             </div>
           </motion.section>
         </main>
+
+        <footer className="landing-footer screen-content">
+          <div className="landing-footer-bar">
+            <span className="font-[var(--font-display)] font-extrabold">CampusMind</span>
+            <span className="footer-dot" aria-hidden="true" />
+            <span>Developed by Raunak</span>
+          </div>
+        </footer>
       </motion.div>
     </div>
   );
