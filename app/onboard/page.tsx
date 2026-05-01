@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ParticleField from '@/components/ParticleField';
 import { CAMPUS_CLUBS } from '@/lib/data/clubs';
 
 export default function OnboardPage() {
@@ -25,17 +26,13 @@ export default function OnboardPage() {
 
   useEffect(() => {
     if (status === 'loading') return;
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    }
+    if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
 
   const toggleClub = (club: string) => {
     setFormData(prev => ({
       ...prev,
-      clubs: prev.clubs.includes(club)
-        ? prev.clubs.filter(c => c !== club)
-        : [...prev.clubs, club]
+      clubs: prev.clubs.includes(club) ? prev.clubs.filter(c => c !== club) : [...prev.clubs, club]
     }));
   };
 
@@ -44,7 +41,6 @@ export default function OnboardPage() {
     if (step === 1 && formData.name.trim().length < 2) return;
     if (step === 2 && formData.branch.trim().length < 2) return;
     if (step === 3 && !formData.year) return;
-    
     setSubmittedOnce(false);
     setDirection(1);
     setStep(prev => prev + 1);
@@ -59,30 +55,16 @@ export default function OnboardPage() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError('');
-
     try {
       const userId = (session?.user as any)?.id;
-      if (!userId) {
-        router.push('/login');
-        return;
-      }
-
+      if (!userId) { router.push('/login'); return; }
       const res = await fetch('/api/onboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          interests: [],
-          userId,
-        }),
+        body: JSON.stringify({ ...formData, interests: [], userId }),
       });
-
       const payload = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) {
-        throw new Error(payload.error ?? 'Onboarding failed');
-      }
-
-      // Save to localStorage as requested
+      if (!res.ok) throw new Error(payload.error ?? 'Onboarding failed');
       const userProfile = {
         name: formData.name.trim(),
         college: formData.college,
@@ -91,11 +73,9 @@ export default function OnboardPage() {
         clubs: formData.clubs.join(', '),
       };
       localStorage.setItem("campusmind_user", JSON.stringify(userProfile));
-
       await update({ hasOnboarded: true });
       window.location.href = '/chat';
     } catch (submitError) {
-      console.error('[onboard] submit error:', submitError);
       setError(submitError instanceof Error ? submitError.message : 'Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -104,8 +84,9 @@ export default function OnboardPage() {
 
   if (status === 'loading' || status === 'unauthenticated') {
     return (
-      <div style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="typing-dot" style={{ background: 'var(--accent)' }} />
+      <div className="screen-shell" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <ParticleField />
+        <div className="typing-dot" />
       </div>
     );
   }
@@ -117,68 +98,50 @@ export default function OnboardPage() {
   };
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
+    <div className="screen-shell" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
+      <ParticleField />
+      <button onClick={() => router.back()} className="back-btn" aria-label="Go back">
+        Back
+      </button>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="form-card"
-        style={{ margin: 0, overflow: 'hidden' }}
+        style={{ margin: 0, overflow: 'hidden', position: 'relative', zIndex: 1 }}
       >
-        <div className="form-logo-row">
-          <div className="form-logo-text">Step {step} of 4</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '13px', color: 'var(--muted)', marginBottom: '12px' }}>
+          Step {step} of 4
         </div>
-        
-        <div className="step-indicator" style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+
+        {/* Step progress bar */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
           {[1, 2, 3, 4].map(num => (
-            <div 
-              key={num} 
-              style={{ 
-                height: '4px', 
-                flex: 1, 
-                borderRadius: '2px', 
-                background: num <= step ? 'var(--accent)' : 'var(--border)' 
-              }} 
-            />
+            <div key={num} className={`step-bar-segment ${num <= step ? 'active' : ''}`} />
           ))}
         </div>
 
         <AnimatePresence mode="wait" custom={direction}>
           {step === 1 && (
             <motion.div key="step1" custom={direction} variants={slideVariants} initial="initial" animate="animate" exit="exit" transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
-              <h2 style={{ color: 'var(--text)', fontSize: '20px', marginBottom: '8px', fontWeight: '500' }}>What's your name?</h2>
-              <p className="form-subtitle">Let's get to know each other.</p>
-              
+              <h2 style={{ color: 'var(--text)', fontSize: '20px', marginBottom: '8px', fontWeight: 600, fontFamily: 'var(--font-display)' }}>What&apos;s your name?</h2>
+              <p className="form-subtitle">Let&apos;s get to know each other.</p>
               <div className="form-field" style={{ marginTop: '24px' }}>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g. Priya Sharma"
-                  className="form-input"
-                  autoFocus
-                  onKeyDown={(e) => e.key === 'Enter' && handleNext()}
-                />
-                {submittedOnce && formData.name.trim().length < 2 && (
-                  <span className="field-error">Name must be at least 2 characters</span>
-                )}
+                <input type="text" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g. Priya Sharma" className="form-input" autoFocus onKeyDown={(e) => e.key === 'Enter' && handleNext()} />
+                {submittedOnce && formData.name.trim().length < 2 && <span className="field-error">Name must be at least 2 characters</span>}
               </div>
             </motion.div>
           )}
 
           {step === 2 && (
             <motion.div key="step2" custom={direction} variants={slideVariants} initial="initial" animate="animate" exit="exit" transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
-              <h2 style={{ color: 'var(--text)', fontSize: '20px', marginBottom: '8px', fontWeight: '500' }}>Where do you study?</h2>
-              <p className="form-subtitle">We'll tailor campus events for you.</p>
-
+              <h2 style={{ color: 'var(--text)', fontSize: '20px', marginBottom: '8px', fontWeight: 600, fontFamily: 'var(--font-display)' }}>Where do you study?</h2>
+              <p className="form-subtitle">We&apos;ll tailor campus events for you.</p>
               <div className="form-field" style={{ marginTop: '24px' }}>
                 <label className="field-label">College</label>
                 <div className="form-select-wrapper">
-                  <select
-                    value={formData.college}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, college: e.target.value }))}
-                    className="form-select"
-                  >
+                  <select value={formData.college} onChange={(e) => setFormData(prev => ({ ...prev, college: e.target.value }))} className="form-select">
                     <option value="VIT Bhopal University">VIT Bhopal University</option>
                     <option value="VIT Vellore" disabled>VIT Vellore (coming soon)</option>
                     <option value="VIT Chennai" disabled>VIT Chennai (coming soon)</option>
@@ -186,36 +149,21 @@ export default function OnboardPage() {
                   </select>
                 </div>
               </div>
-
               <div className="form-field">
                 <label className="field-label">Branch</label>
-                <input
-                  type="text"
-                  value={formData.branch}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, branch: e.target.value }))}
-                  placeholder="e.g. Computer Science"
-                  className="form-input"
-                  onKeyDown={(e) => e.key === 'Enter' && handleNext()}
-                />
-                {submittedOnce && formData.branch.trim().length < 2 && (
-                  <span className="field-error">Branch must be at least 2 characters</span>
-                )}
+                <input type="text" value={formData.branch} onChange={(e) => setFormData(prev => ({ ...prev, branch: e.target.value }))} placeholder="e.g. Computer Science" className="form-input" onKeyDown={(e) => e.key === 'Enter' && handleNext()} />
+                {submittedOnce && formData.branch.trim().length < 2 && <span className="field-error">Branch must be at least 2 characters</span>}
               </div>
             </motion.div>
           )}
 
           {step === 3 && (
             <motion.div key="step3" custom={direction} variants={slideVariants} initial="initial" animate="animate" exit="exit" transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
-              <h2 style={{ color: 'var(--text)', fontSize: '20px', marginBottom: '8px', fontWeight: '500' }}>What year are you in?</h2>
+              <h2 style={{ color: 'var(--text)', fontSize: '20px', marginBottom: '8px', fontWeight: 600, fontFamily: 'var(--font-display)' }}>What year are you in?</h2>
               <p className="form-subtitle">To recommend relevant academic materials.</p>
-
               <div className="form-field" style={{ marginTop: '24px' }}>
                 <div className="form-select-wrapper">
-                  <select
-                    value={formData.year}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, year: e.target.value }))}
-                    className="form-select"
-                  >
+                  <select value={formData.year} onChange={(e) => setFormData(prev => ({ ...prev, year: e.target.value }))} className="form-select">
                     <option value="" disabled>Select your year</option>
                     <option value="1st Year">1st Year</option>
                     <option value="2nd Year">2nd Year</option>
@@ -223,40 +171,29 @@ export default function OnboardPage() {
                     <option value="4th Year">4th Year</option>
                   </select>
                 </div>
-                {submittedOnce && !formData.year && (
-                  <span className="field-error">Please select your year</span>
-                )}
+                {submittedOnce && !formData.year && <span className="field-error">Please select your year</span>}
               </div>
             </motion.div>
           )}
 
           {step === 4 && (
             <motion.div key="step4" custom={direction} variants={slideVariants} initial="initial" animate="animate" exit="exit" transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
-              <h2 style={{ color: 'var(--text)', fontSize: '20px', marginBottom: '8px', fontWeight: '500' }}>Clubs of Interest</h2>
+              <h2 style={{ color: 'var(--text)', fontSize: '20px', marginBottom: '8px', fontWeight: 600, fontFamily: 'var(--font-display)' }}>Clubs of Interest</h2>
               <p className="form-subtitle">Select clubs you are part of or interested in.</p>
-
               <div style={{ marginTop: '24px', display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
                 {CAMPUS_CLUBS.map((club) => {
                   const isSelected = formData.clubs.includes(club);
                   return (
-                    <button
-                      key={club}
-                      type="button"
-                      onClick={() => toggleClub(club)}
-                      className={`club-chip ${isSelected ? 'selected' : ''}`}
-                      style={{
-                        padding: '8px 16px',
-                        borderRadius: '20px',
-                        border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
-                        background: isSelected ? 'rgba(var(--accent-rgb), 0.1)' : 'var(--surface-light)',
-                        color: isSelected ? 'var(--accent)' : 'var(--text-muted)',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      {club}
-                    </button>
+                    <button key={club} type="button" onClick={() => toggleClub(club)} style={{
+                      padding: '8px 18px', borderRadius: 'var(--r-pill)', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s ease', fontFamily: 'var(--font-body)',
+                      border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                      background: isSelected ? 'rgba(212,212,212,0.15)' : 'var(--surface2)',
+                      color: isSelected ? 'var(--accent2)' : 'var(--text2)',
+                      boxShadow: isSelected ? '0 0 12px rgba(212,212,212,0.2)' : 'none',
+                    }}
+                    onMouseEnter={(e) => { if (!isSelected) { e.currentTarget.style.background = 'var(--pearl-dim)'; e.currentTarget.style.borderColor = 'rgba(240,238,248,0.2)'; e.currentTarget.style.color = 'var(--pearl)'; }}}
+                    onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.background = 'var(--surface2)'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text2)'; }}}
+                    >{club}</button>
                   );
                 })}
               </div>
@@ -264,44 +201,16 @@ export default function OnboardPage() {
           )}
         </AnimatePresence>
 
-        {error && (
-          <span className="field-error" style={{ display: 'block', marginTop: '16px' }}>
-            {error}
-          </span>
-        )}
+        {error && <span className="field-error" style={{ display: 'block', marginTop: '16px' }}>{error}</span>}
 
         <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
           {step > 1 && (
-            <button
-              type="button"
-              onClick={handleBack}
-              disabled={isSubmitting}
-              className="form-submit"
-              style={{ background: 'var(--surface-light)', color: 'var(--text)', flex: 1 }}
-            >
-              Back
-            </button>
+            <button type="button" onClick={handleBack} disabled={isSubmitting} className="btn btn-ghost" style={{ flex: 1, padding: '14px' }}>Back</button>
           )}
-          
           {step < 4 ? (
-            <button
-              type="button"
-              onClick={handleNext}
-              className="form-submit"
-              style={{ flex: 2 }}
-            >
-              Continue
-            </button>
+            <button type="button" onClick={handleNext} className="form-submit" style={{ flex: 2 }}>Continue</button>
           ) : (
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="form-submit"
-              style={{ flex: 2 }}
-            >
-              {isSubmitting ? 'Saving...' : 'Finish Setup'}
-            </button>
+            <button type="button" onClick={handleSubmit} disabled={isSubmitting} className="form-submit" style={{ flex: 2 }}>{isSubmitting ? 'Saving...' : 'Finish Setup'}</button>
           )}
         </div>
       </motion.div>

@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Brain, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, Moon } from "lucide-react";
+import { motion } from "framer-motion";
+import ParticleField from "@/components/ParticleField";
 import { supabase } from "@/lib/supabase";
 import { ensureStudentProfile } from "@/lib/auth-helpers";
 import {
@@ -29,8 +31,8 @@ export default function SignupPage() {
     if (err) setOauthError(decodeURIComponent(err));
   }, []);
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignup = async (event: FormEvent) => {
+    event.preventDefault();
     setError("");
     setInfo("");
 
@@ -48,15 +50,11 @@ export default function SignupPage() {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: {
-          emailRedirectTo: getOAuthCallbackUrl(),
-        },
+        options: { emailRedirectTo: getOAuthCallbackUrl() },
       });
 
       if (signUpError) {
-        console.error("[signup] signUp:", signUpError.message);
         setError(signUpError.message);
-        setIsLoading(false);
         return;
       }
 
@@ -67,11 +65,8 @@ export default function SignupPage() {
         return;
       }
 
-      setInfo(
-        "Check your email for a confirmation link. After confirming, you can sign in."
-      );
+      setInfo("Check your email for a confirmation link. After confirming, you can sign in.");
     } catch (err) {
-      console.error("[signup] unexpected:", err);
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setIsLoading(false);
@@ -85,130 +80,90 @@ export default function SignupPage() {
 
     try {
       persistOAuthRedirectPath("/onboard");
-
       const { error: oauthErr } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: {
-          redirectTo: getOAuthCallbackUrl(),
-        },
+        options: { redirectTo: getOAuthCallbackUrl() },
       });
-
-      if (oauthErr) {
-        throw oauthErr;
-      }
+      if (oauthErr) throw oauthErr;
     } catch (err) {
       clearOAuthRedirectPath();
-      const message = getOAuthErrorMessage(err);
-      console.error("[signup] Google OAuth start failed:", err);
-      setError(message);
+      setError(getOAuthErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2 mb-10 justify-center">
-          <Brain className="text-blue-500 w-6 h-6" />
-          <span className="text-white font-semibold text-lg">CampusMind</span>
+    <div className="screen-shell flex min-h-screen items-center justify-center px-4">
+      <ParticleField />
+
+      <button onClick={() => router.back()} className="back-btn" aria-label="Go back">
+        Back
+      </button>
+
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45 }}
+        className="form-card screen-content"
+        style={{ margin: 0 }}
+      >
+        <div className="form-logo-row" style={{ justifyContent: "center", marginBottom: 20 }}>
+          <Moon size={20} className="form-logo-icon" style={{ color: "var(--accent2)" }} />
+          <div className="form-logo-text">CampusMind</div>
         </div>
 
-        <h1 className="text-2xl font-bold text-white text-center mb-2">Create account</h1>
-        <p className="text-gray-400 text-sm text-center mb-8">Sign up with email or Google</p>
+        <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 22, color: "var(--text)", textAlign: "center", marginBottom: 6 }}>
+          Create An Account
+        </h1>
+        <p className="form-subtitle" style={{ textAlign: "center" }}>Sign up with email or Google</p>
 
         {(error || oauthError) && (
-          <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2 mb-4">
+          <p style={{ color: "var(--red)", fontSize: 13, background: "var(--red-bg)", border: "1px solid rgba(252,165,165,0.2)", borderRadius: "var(--r-md)", padding: "10px 14px", marginBottom: 16 }}>
             {error || oauthError}
           </p>
         )}
         {info && (
-          <p className="text-blue-300 text-sm bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2 mb-4">
+          <p style={{ color: "var(--accent2)", fontSize: 13, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "var(--r-md)", padding: "10px 14px", marginBottom: 16 }}>
             {info}
           </p>
         )}
 
-        <button
-          type="button"
-          onClick={handleGoogle}
-          disabled={isLoading}
-          className="w-full mb-4 flex items-center justify-center gap-2 py-3 rounded-xl border border-white/15 bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors disabled:opacity-50"
-        >
+        <button type="button" onClick={handleGoogle} disabled={isLoading} className="btn btn-ghost" style={{ width: "100%", marginBottom: 16, padding: 14 }}>
           Continue with Google
         </button>
 
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/10" />
+        <div style={{ position: "relative", marginBottom: 24 }}>
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center" }}>
+            <div style={{ width: "100%", borderTop: "1px solid var(--border2)" }} />
           </div>
-          <div className="relative flex justify-center text-xs uppercase tracking-wide">
-            <span className="bg-black px-2 text-gray-500">or email</span>
+          <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
+            <span style={{ background: "rgba(18,18,18,0.78)", padding: "0 12px", fontSize: 11, color: "var(--muted)", textTransform: "uppercase" }}>or email</span>
           </div>
         </div>
 
-        <form onSubmit={handleSignup} className="space-y-4">
-          <div>
-            <label className="block text-sm text-gray-300 mb-1.5">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@student.edu"
-              required
-              autoComplete="email"
-              className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-3 text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition-all"
-            />
+        <form onSubmit={handleSignup}>
+          <div className="form-field">
+            <label className="field-label" htmlFor="signup-email">Email</label>
+            <input id="signup-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Enter your username" required autoComplete="email" className="form-input" />
           </div>
-          <div>
-            <label className="block text-sm text-gray-300 mb-1.5">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 6 characters"
-              required
-              minLength={6}
-              autoComplete="new-password"
-              className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-3 text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition-all"
-            />
+          <div className="form-field">
+            <label className="field-label" htmlFor="signup-password">Password</label>
+            <input id="signup-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" required minLength={6} autoComplete="new-password" className="form-input" />
           </div>
-          <div>
-            <label className="block text-sm text-gray-300 mb-1.5">Confirm password</label>
-            <input
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              placeholder="Repeat password"
-              required
-              minLength={6}
-              autoComplete="new-password"
-              className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-3 text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/20 transition-all"
-            />
+          <div className="form-field" style={{ marginBottom: 24 }}>
+            <label className="field-label" htmlFor="signup-confirm">Confirm password</label>
+            <input id="signup-confirm" type="password" value={confirm} onChange={(event) => setConfirm(event.target.value)} placeholder="Repeat your password" required minLength={6} autoComplete="new-password" className="form-input" />
           </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-50 shadow-glow-blue hover:shadow-glow-blue-lg mt-2"
-            style={{ background: "linear-gradient(135deg, #2563eb, #06b6d4)" }}
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                Create account <ArrowRight className="w-4 h-4" />
-              </>
-            )}
+          <button type="submit" disabled={isLoading} className="form-submit">
+            {isLoading ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <span className="inline-flex items-center justify-center gap-2">Create account <ArrowRight size={16} /></span>}
           </button>
         </form>
 
-        <p className="text-gray-500 text-xs text-center mt-6">
-          Already have an account?{" "}
-          <Link href="/login" className="text-blue-400 hover:text-blue-300">
-            Sign in
-          </Link>
+        <p style={{ color: "var(--muted)", fontSize: 12, textAlign: "center", marginTop: 24 }}>
+          Already have an account? <Link href="/login" style={{ color: "var(--accent2)", textDecoration: "none", fontWeight: 700 }}>Sign in</Link>
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 }
