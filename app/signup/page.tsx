@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Loader2, Moon } from "lucide-react";
 import { motion } from "framer-motion";
-import ParticleField from "@/components/ParticleField";
 import { supabase } from "@/lib/supabase";
 import { ensureStudentProfile } from "@/lib/auth-helpers";
 import {
@@ -95,8 +94,6 @@ export default function SignupPage() {
 
   return (
     <div className="screen-shell flex min-h-screen items-center justify-center px-4">
-      <ParticleField />
-
       <button onClick={() => router.back()} className="back-btn" aria-label="Go back">
         Back
       </button>

@@ -68,6 +68,7 @@ html, body, #root {
   font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.6;
+  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -143,27 +144,37 @@ body {
 .typing-dot:nth-child(2) { animation-delay: 0.16s; }
 .typing-dot:nth-child(3) { animation-delay: 0.32s; }
 
-.particle-field {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.92;
-}
-
 .screen-shell {
   position: relative;
   min-height: 100vh;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 12% 48%, rgba(0,0,0,0.85) 0 6%, transparent 18%),
-    radial-gradient(ellipse 60% 45% at 50% 0%, rgba(255,255,255,0.08), transparent 65%),
-    linear-gradient(180deg, #070707 0%, #111 52%, #242424 52%, #242424 100%);
+  overflow-x: hidden;
+  background: #090909;
 }
 
 .screen-content {
   position: relative;
   z-index: 1;
+}
+
+.glass-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: rgba(9, 9, 9, 0.72);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(22px) saturate(1.35);
+  -webkit-backdrop-filter: blur(22px) saturate(1.35);
+}
+
+.landing-hero {
+  min-height: calc(100vh - 8px);
+  padding: clamp(72px, 11vh, 128px) 0 clamp(96px, 14vh, 160px);
+}
+
+.landing-features {
+  min-height: min(720px, 88vh);
+  padding: clamp(72px, 12vh, 120px) 0 96px;
+  scroll-margin-top: 90px;
 }
 
 .glass-panel,
@@ -212,16 +223,68 @@ body {
   pointer-events: none;
 }
 
+.intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  overflow: hidden;
+  animation: introOverlayGone 0.01s linear 1.05s forwards;
+}
+
+.intro-panel {
+  position: absolute;
+  inset-inline: 0;
+  height: 50%;
+}
+
+.intro-panel-top {
+  top: 0;
+  background: #9b9b9b;
+  animation: introPanelTop 0.92s cubic-bezier(0.76, 0, 0.24, 1) 0.16s forwards;
+}
+
+.intro-panel-bottom {
+  bottom: 0;
+  background: #171717;
+  animation: introPanelBottom 0.92s cubic-bezier(0.76, 0, 0.24, 1) 0.16s forwards;
+}
+
 .intro-title-half span {
   line-height: 1;
 }
 
 .intro-title-top {
   clip-path: inset(0 0 50% 0);
+  color: #111111;
+  animation: introTitleTop 0.82s cubic-bezier(0.76, 0, 0.24, 1) 0.12s forwards;
 }
 
 .intro-title-bottom {
   clip-path: inset(50% 0 0 0);
+  color: #f2f2f2;
+  text-shadow: 0 2px 0 rgba(0,0,0,0.5), 0 14px 22px rgba(0,0,0,0.55);
+  animation: introTitleBottom 0.82s cubic-bezier(0.76, 0, 0.24, 1) 0.12s forwards;
+}
+
+@keyframes introPanelTop {
+  to { transform: translateY(-103%); }
+}
+
+@keyframes introPanelBottom {
+  to { transform: translateY(103%); }
+}
+
+@keyframes introTitleTop {
+  to { transform: translateY(-58vh); opacity: 0; }
+}
+
+@keyframes introTitleBottom {
+  to { transform: translateY(58vh); opacity: 0; }
+}
+
+@keyframes introOverlayGone {
+  to { visibility: hidden; }
 }
 
 .icon-btn svg,
@@ -658,11 +721,14 @@ body {
 }
 
 @media (max-width: 720px) {
-  .screen-shell {
-    background:
-      radial-gradient(circle at 10% 50%, rgba(0,0,0,0.86) 0 10%, transparent 24%),
-      radial-gradient(ellipse 80% 42% at 50% 0%, rgba(255,255,255,0.08), transparent 66%),
-      linear-gradient(180deg, #070707 0%, #111 58%, #242424 58%, #242424 100%);
+  .landing-hero {
+    min-height: calc(100vh - 12px);
+    padding: 64px 0 112px;
+  }
+
+  .landing-features {
+    min-height: 80vh;
+    padding: 72px 0 84px;
   }
 
   .form-card {

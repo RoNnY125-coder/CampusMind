@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react";
 import MemorySidebar from "@/components/MemorySidebar";
 import ChatWindow from "@/components/ChatWindow";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import ParticleField from "@/components/ParticleField";
 
 export default function ChatPage() {
   const { data: session, status } = useSession();
@@ -38,7 +37,6 @@ export default function ChatPage() {
   if (status === "loading" || !userId) {
     return (
       <div className="screen-shell" style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)" }}>
-        <ParticleField />
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
           <div style={{ width: 48, height: 48, border: "4px solid rgba(212,212,212,0.25)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
           <p style={{ fontFamily: "var(--font-body)", color: "var(--text2)" }}>Loading CampusMind...</p>
@@ -51,7 +49,6 @@ export default function ChatPage() {
   return (
     <ErrorBoundary>
       <div className="screen-shell" style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-        <ParticleField />
         {/* Sidebar */}
         <aside style={{
           position: isSidebarOpen ? "absolute" : undefined,

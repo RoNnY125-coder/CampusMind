@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ParticleField from '@/components/ParticleField';
 import { CAMPUS_CLUBS } from '@/lib/data/clubs';
 
 export default function OnboardPage() {
@@ -85,7 +84,6 @@ export default function OnboardPage() {
   if (status === 'loading' || status === 'unauthenticated') {
     return (
       <div className="screen-shell" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <ParticleField />
         <div className="typing-dot" />
       </div>
     );
@@ -99,7 +97,6 @@ export default function OnboardPage() {
 
   return (
     <div className="screen-shell" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
-      <ParticleField />
       <button onClick={() => router.back()} className="back-btn" aria-label="Go back">
         Back
       </button>

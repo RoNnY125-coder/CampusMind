@@ -5,7 +5,6 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { LogIn, Moon } from "lucide-react";
-import ParticleField from "@/components/ParticleField";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,8 +35,6 @@ export default function LoginPage() {
 
   return (
     <div className="screen-shell flex min-h-screen items-center justify-center px-4">
-      <ParticleField />
-
       <button onClick={() => router.push("/")} className="back-btn" aria-label="Go back">
         Back
       </button>
