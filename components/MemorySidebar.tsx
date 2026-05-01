@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BrainCircuit, Clock3, MessageCircle, Moon, Sparkles } from "lucide-react";
 
 interface Memory {
   id: string;
@@ -47,9 +48,9 @@ export default function MemorySidebar({ userId, refreshKey, onSessionSelect }: M
       const response = await fetch(`/api/memory?userId=${encodeURIComponent(userId)}`);
       const data = await response.json();
       const fetched: Memory[] = data.memories ?? [];
-
       const currentIds = new Set(fetched.map((memory) => memory.id));
       const incoming = new Set<string>();
+
       currentIds.forEach((id) => {
         if (!prevIdsRef.current.has(id)) incoming.add(id);
       });
@@ -60,7 +61,6 @@ export default function MemorySidebar({ userId, refreshKey, onSessionSelect }: M
       if (incoming.size > 0) {
         setNewIds((prev) => new Set([...prev, ...incoming]));
         containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-
         setTimeout(() => {
           setNewIds((prev) => {
             const next = new Set(prev);
@@ -69,8 +69,7 @@ export default function MemorySidebar({ userId, refreshKey, onSessionSelect }: M
           });
         }, 2500);
       }
-    } catch (error) {
-      console.error("[memory-sidebar] failed to fetch memories:", error);
+    } catch {
     } finally {
       setMemLoading(false);
     }
@@ -82,8 +81,7 @@ export default function MemorySidebar({ userId, refreshKey, onSessionSelect }: M
       const response = await fetch(`/api/sessions?userId=${encodeURIComponent(userId)}`);
       const data = await response.json();
       setSessions(data.sessions ?? []);
-    } catch (error) {
-      console.error("[memory-sidebar] failed to fetch sessions:", error);
+    } catch {
     } finally {
       setChatLoading(false);
     }
@@ -98,113 +96,105 @@ export default function MemorySidebar({ userId, refreshKey, onSessionSelect }: M
     return () => clearInterval(interval);
   }, [fetchMemories]);
 
-  // Re-fetch everything when refreshKey changes (e.g., after Clear Chat)
   useEffect(() => {
     if (refreshKey === undefined) return;
     setMemories([]);
     setSessions([]);
     prevIdsRef.current = new Set();
     void fetchMemories();
-    if (tab === "chats") {
-      void fetchSessions();
-    }
-  }, [refreshKey]);
+    if (tab === "chats") void fetchSessions();
+  }, [fetchMemories, fetchSessions, refreshKey, tab]);
 
   useEffect(() => {
-    if (tab === "chats") {
-      void fetchSessions();
-    }
-  }, [tab, fetchSessions]);
+    if (tab === "chats") void fetchSessions();
+  }, [fetchSessions, tab]);
 
   return (
-    <div
-      ref={containerRef}
-      className="h-full overflow-y-auto p-4 flex flex-col gap-3 border-r border-white/10 bg-[linear-gradient(180deg,#070707,#0c111b)]"
-    >
-      <div className="sticky top-0 z-10 bg-black/70 backdrop-blur-xl p-3 rounded-xl border border-white/10">
-        <div className="grid grid-cols-2 gap-2">
-          {(["memory", "chats"] as const).map((name) => (
-            <button
-              key={name}
-              onClick={() => setTab(name)}
-              className={`rounded-xl px-3 py-2 text-sm border transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
-                tab === name
-                  ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
-                  : "bg-gray-900 text-gray-300 border-white/10 hover:border-blue-500/30"
-              }`}
-            >
-              {name === "memory" ? "Memory" : "Chats"}
-            </button>
-          ))}
+    <div ref={containerRef} className="memory-sidebar">
+      <div className="memory-sidebar-brand">
+        <span className="memory-brand-mark">
+          <Moon size={16} />
+        </span>
+        <div>
+          <span className="memory-brand-title">CampusMind</span>
+          <span className="memory-brand-sub">Memory workspace</span>
         </div>
+      </div>
+
+      <div className="memory-tabs">
+        {(["memory", "chats"] as const).map((name) => (
+          <button key={name} type="button" onClick={() => setTab(name)} className={`memory-tab ${tab === name ? "active" : ""}`}>
+            {name === "memory" ? <BrainCircuit size={15} /> : <MessageCircle size={15} />}
+            <span>{name === "memory" ? "Memory" : "Chats"}</span>
+          </button>
+        ))}
       </div>
 
       {tab === "memory" && (
         <>
-          {memLoading &&
-            Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="bg-gray-900 rounded-xl p-3 animate-pulse border border-white/10">
-                <div className="h-3 bg-gray-700 rounded w-3/4 mb-2" />
-                <div className="h-2 bg-gray-700 rounded w-1/2" />
-              </div>
-            ))}
+          {memLoading && Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="memory-card shimmer">
+              <div className="memory-skeleton-line wide" />
+              <div className="memory-skeleton-line short" />
+            </div>
+          ))}
 
           {!memLoading && memories.length === 0 && (
-            <div className="flex-1 flex items-center justify-center py-10">
-              <p className="text-gray-400 text-sm text-center px-4">Start chatting to build your memory bank.</p>
+            <div className="memory-empty">
+              <Sparkles size={22} />
+              <p>Start chatting to build your memory bank.</p>
             </div>
           )}
 
-          {!memLoading &&
-            memories.map((memory, index) => (
-              <div
-                key={memory.id}
-                className={`rounded-xl p-3.5 text-sm transition-all duration-700 border ${
-                  newIds.has(memory.id)
-                    ? "bg-gray-800 border-blue-500/50 memory-new"
-                    : "bg-gray-900 border-white/10 hover:border-blue-500/30"
-                }`}
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <p className="font-medium text-white flex items-start gap-2">
-                  <span className="text-blue-400">🧠</span>
-                  <span className="line-clamp-3">
-                    {memory.content.length > 100 ? `${memory.content.slice(0, 100)}...` : memory.content}
-                  </span>
-                </p>
-                <p className="text-gray-400 text-xs mt-2 pl-6">{timeAgo(memory.created_at)}</p>
-              </div>
-            ))}
+          {!memLoading && memories.map((memory, index) => (
+            <div
+              key={memory.id}
+              className={`memory-card ${newIds.has(memory.id) ? "is-new" : ""}`}
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <p className="memory-card-copy">
+                <BrainCircuit size={16} />
+                <span>{memory.content.length > 100 ? `${memory.content.slice(0, 100)}...` : memory.content}</span>
+              </p>
+              <p className="memory-card-time">
+                <Clock3 size={12} />
+                {timeAgo(memory.created_at)}
+              </p>
+            </div>
+          ))}
         </>
       )}
 
       {tab === "chats" && (
         <>
-          {chatLoading &&
-            Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="bg-gray-900 rounded-xl p-3 animate-pulse border border-white/10">
-                <div className="h-3 bg-gray-700 rounded w-3/4 mb-2" />
-                <div className="h-2 bg-gray-700 rounded w-1/3" />
-              </div>
-            ))}
+          {chatLoading && Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="memory-card shimmer">
+              <div className="memory-skeleton-line wide" />
+              <div className="memory-skeleton-line short" />
+            </div>
+          ))}
 
           {!chatLoading && sessions.length === 0 && (
-            <div className="flex-1 flex items-center justify-center py-10">
-              <p className="text-gray-400 text-sm text-center px-4">No saved chats yet. Start a conversation.</p>
+            <div className="memory-empty">
+              <MessageCircle size={22} />
+              <p>No saved chats yet. Start a conversation.</p>
             </div>
           )}
 
-          {!chatLoading &&
-            sessions.map((session) => (
-              <button
-                key={session.id}
-                onClick={() => onSessionSelect?.(session.id)}
-                className="w-full text-left rounded-xl p-3 bg-gray-900 border border-white/10 hover:border-blue-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              >
-                <p className="text-white text-sm font-medium truncate">{session.title || "New Chat"}</p>
-                <p className="text-gray-400 text-xs mt-1">{timeAgo(session.updated_at)}</p>
-              </button>
-            ))}
+          {!chatLoading && sessions.map((session) => (
+            <button key={session.id} type="button" onClick={() => onSessionSelect?.(session.id)} className="memory-session-card">
+              <span className="memory-session-icon">
+                <MessageCircle size={15} />
+              </span>
+              <span className="memory-session-main">
+                <span className="memory-session-title">{session.title || "New Chat"}</span>
+                <span className="memory-card-time">
+                  <Clock3 size={12} />
+                  {timeAgo(session.updated_at)}
+                </span>
+              </span>
+            </button>
+          ))}
         </>
       )}
     </div>

@@ -19,6 +19,7 @@ export default function LandingPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [isCheckingUser, setIsCheckingUser] = useState(false);
+  const [introStarted, setIntroStarted] = useState(false);
 
   const handleGetStarted = async () => {
     if (status === "unauthenticated") {
@@ -45,10 +46,17 @@ export default function LandingPage() {
   };
 
   const isBusy = status === "loading" || isCheckingUser;
+  const introDelay = introStarted ? 0.92 : 0;
 
   return (
     <div className="screen-shell">
-      <div className="intro-overlay" aria-hidden="true">
+      <button
+        type="button"
+        className={`intro-overlay ${introStarted ? "is-started" : ""}`}
+        onClick={() => setIntroStarted(true)}
+        aria-label="Enter CampusMind"
+        disabled={introStarted}
+      >
         <div className="intro-panel intro-panel-top" />
         <div className="intro-panel intro-panel-bottom" />
         <div className="intro-title-half intro-title-top">
@@ -57,11 +65,14 @@ export default function LandingPage() {
         <div className="intro-title-half intro-title-bottom">
           <span>CAMPUS MIND</span>
         </div>
-      </div>
+        <span className="intro-enter">Click to enter</span>
+      </button>
 
       <motion.div
         className="screen-content flex min-h-screen flex-col"
-        initial={false}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: introStarted ? 1 : 0 }}
+        transition={{ delay: 0.52, duration: 0.55, ease: "easeOut" }}
       >
         <nav className="glass-navbar mx-auto mt-4 flex w-[calc(100%-32px)] max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <button
@@ -89,8 +100,8 @@ export default function LandingPage() {
             <motion.div
               className="landing-kicker mb-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-2.5 text-sm font-semibold text-[var(--accent2)] backdrop-blur-xl"
               initial={{ opacity: 0, y: 18, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ delay: 1.1, duration: 0.55, ease: "easeOut" }}
+              animate={{ opacity: introStarted ? 1 : 0, y: introStarted ? 0 : 18, scale: introStarted ? 1 : 0.96 }}
+              transition={{ delay: introDelay + 0.1, duration: 0.55, ease: "easeOut" }}
             >
               <Sparkles size={14} />
               AI Powered - Memory First - Campus Native
@@ -99,8 +110,8 @@ export default function LandingPage() {
             <motion.h1
               className="landing-title max-w-5xl font-[var(--font-display)] text-[clamp(58px,10vw,128px)] font-extrabold leading-[0.94] text-[var(--pearl)]"
               initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ delay: 1.18, duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
+              animate={{ opacity: introStarted ? 1 : 0, y: introStarted ? 0 : 30, filter: introStarted ? "blur(0px)" : "blur(10px)" }}
+              transition={{ delay: introDelay + 0.18, duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
             >
               Your Campus, Remembered
             </motion.h1>
@@ -108,8 +119,8 @@ export default function LandingPage() {
             <motion.p
               className="mt-8 max-w-3xl text-base leading-8 text-[var(--text2)] sm:text-lg"
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.32, duration: 0.55, ease: "easeOut" }}
+              animate={{ opacity: introStarted ? 1 : 0, y: introStarted ? 0 : 20 }}
+              transition={{ delay: introDelay + 0.32, duration: 0.55, ease: "easeOut" }}
             >
               CampusMind is an AI assistant that keeps your profile, clubs, events, and goals in context so every answer feels made for your college life.
             </motion.p>
@@ -120,8 +131,8 @@ export default function LandingPage() {
               disabled={isBusy}
               className="btn btn-primary mt-10 !rounded-full !px-8 !py-4"
               initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.42, duration: 0.5, ease: "easeOut" }}
+              animate={{ opacity: introStarted ? 1 : 0, y: introStarted ? 0 : 18 }}
+              transition={{ delay: introDelay + 0.42, duration: 0.5, ease: "easeOut" }}
             >
               {isBusy ? "Loading..." : "Explore Now"}
               <ArrowRight size={17} />
@@ -131,8 +142,8 @@ export default function LandingPage() {
           <motion.section
             className="landing-features w-full max-w-5xl"
             initial={{ opacity: 0, y: 26 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.58, duration: 0.65, ease: "easeOut" }}
+            animate={{ opacity: introStarted ? 1 : 0, y: introStarted ? 0 : 26 }}
+            transition={{ delay: introDelay + 0.58, duration: 0.65, ease: "easeOut" }}
           >
             <h2 className="mb-7 font-[var(--font-display)] text-4xl font-bold text-[var(--pearl)] sm:text-5xl">Features</h2>
             <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
