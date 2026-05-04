@@ -1,37 +1,13 @@
 import { NextResponse } from 'next/server';
-import { retainMemory, recallMemories } from '@/lib/memory';
-import { CAMPUS_DATA } from '@/lib/campus-data';
+
+// The old mem0-based seed route is deprecated.
+// Club seeding is now done via: npm run seed:clubs
+// which uses scripts/seed-clubs.ts to populate Supabase + pgvector embeddings.
 
 export async function POST() {
-  try {
-    // Check if already seeded
-    const existing = await recallMemories('campus_shared', 'college');
-
-    if (existing.length > 0) {
-      return NextResponse.json({ alreadySeeded: true, count: existing.length });
-    }
-
-    // Seed all campus data
-    const results = await Promise.allSettled(
-      CAMPUS_DATA.map((item) =>
-        retainMemory('campus_shared', item, 'world')
-      )
-    );
-
-    const successful = results.filter((r) => r.status === 'fulfilled').length;
-    console.log(
-      `✅ Seeded ${successful}/${CAMPUS_DATA.length} campus knowledge items`
-    );
-
-    return NextResponse.json({
-      seeded: successful,
-      total: CAMPUS_DATA.length,
-    });
-  } catch (error) {
-    console.error('Seed error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Seeding failed' },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({
+    deprecated: true,
+    message:
+      'This endpoint is deprecated. Use `npm run seed:clubs` to seed club data into Supabase with pgvector embeddings.',
+  });
 }

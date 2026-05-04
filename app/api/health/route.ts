@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server"
-import { retainMemory, recallMemories } from "@/lib/memory"
+import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
 
 export async function GET() {
@@ -10,21 +9,17 @@ export async function GET() {
         groqConfigured = false;
     }
 
-    let memoryOk = false
-    let memoryError = ""
+    let supabaseConfigured = false;
     try {
-        await retainMemory("health-check", "health check ping", "system")
-        await recallMemories("health-check", "health check")
-        memoryOk = true
-    } catch (e: any) {
-        memoryError = e.message
+        supabaseConfigured = !!env.NEXT_PUBLIC_SUPABASE_URL && !!env.SUPABASE_SERVICE_ROLE_KEY;
+    } catch {
+        supabaseConfigured = false;
     }
 
     return NextResponse.json({
-        ok: memoryOk,
-        memoryConnected: memoryOk,
-        memoryError: memoryError || null,
+        ok: groqConfigured && supabaseConfigured,
         groqConfigured,
+        supabaseConfigured,
         timestamp: new Date().toISOString()
-    })
+    });
 }

@@ -1,12 +1,14 @@
+// lib/student-profile.ts
 import { createClient } from "@supabase/supabase-js";
 
 export interface StudentProfile {
-  name: string;
-  year: string;
-  college: string;
-  branch: string;
-  interests: string[];
-  clubs: string[];
+  name:       string;
+  year:       string;
+  college:    string;
+  collegeId:  string | null;
+  branch:     string;
+  interests:  string[];
+  clubs:      string[];
   hasOnboarded: boolean;
 }
 
@@ -20,19 +22,20 @@ export async function getStudentProfile(userId: string): Promise<StudentProfile 
 
     const { data, error } = await db
       .from("students")
-      .select("name, year, college, branch, interests, clubs, has_onboarded")
+      .select("name, year, college, college_id, branch, interests, clubs, has_onboarded")
       .eq("id", userId)
       .single();
 
     if (error || !data) return null;
 
     return {
-      name: data.name,
-      year: data.year,
-      college: data.college || "VIT Bhopal",
-      branch: data.branch,
-      interests: Array.isArray(data.interests) ? data.interests : [],
-      clubs: Array.isArray(data.clubs) ? data.clubs : [],
+      name:         data.name,
+      year:         data.year,
+      college:      data.college || "VIT Bhopal University",
+      collegeId:    data.college_id ?? null,
+      branch:       data.branch,
+      interests:    Array.isArray(data.interests) ? data.interests : [],
+      clubs:        Array.isArray(data.clubs)     ? data.clubs     : [],
       hasOnboarded: data.has_onboarded,
     };
   } catch {

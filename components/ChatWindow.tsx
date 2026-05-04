@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, KeyboardEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, SendHorizonal, LogOut, Trash2, Menu, Moon } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { supabase } from "@/lib/supabase";
 import { CLUBS } from "@/lib/clubs";
 
 interface Message { role: "user" | "assistant"; content: string; }
@@ -138,7 +138,8 @@ export default function ChatWindow({ userId, studentName, onToggleSidebar, sessi
   const confirmSignOut = async () => {
     localStorage.removeItem(`campusmind_chat_${userId}`);
     localStorage.removeItem("campusmind_user");
-    await signOut({ callbackUrl: "/login" });
+    await supabase.auth.signOut();
+    window.location.href = "/login";
   };
 
   const parseMessage = (content: string) => {

@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSupabaseAuth } from '@/components/SupabaseAuthProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CAMPUS_CLUBS } from '@/lib/data/clubs';
+import { supabase } from '@/lib/supabase';
 
 export default function OnboardPage() {
   const router = useRouter();
-  const { data: session, status, update } = useSession();
+  const { user, loading: authLoading } = useSupabaseAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [submittedOnce, setSubmittedOnce] = useState(false);
@@ -24,9 +25,9 @@ export default function OnboardPage() {
   });
 
   useEffect(() => {
-    if (status === 'loading') return;
-    if (status === 'unauthenticated') router.push('/login');
-  }, [status, router]);
+    if (authLoading) return;
+    if (!user) router.push('/login');
+  }, [authLoading, user, router]);
 
   const toggleClub = (club: string) => {
     setFormData(prev => ({
@@ -55,7 +56,7 @@ export default function OnboardPage() {
     setIsSubmitting(true);
     setError('');
     try {
-      const userId = (session?.user as any)?.id;
+      const userId = user?.id;
       if (!userId) { router.push('/login'); return; }
       const res = await fetch('/api/onboard', {
         method: 'POST',
@@ -72,7 +73,13 @@ export default function OnboardPage() {
         clubs: formData.clubs.join(', '),
       };
       localStorage.setItem("campusmind_user", JSON.stringify(userProfile));
-      await update({ hasOnboarded: true });
+
+      // Update has_onboarded in the students table
+      await supabase
+        .from('students')
+        .update({ has_onboarded: true })
+        .eq('id', userId);
+
       window.location.href = '/chat';
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Something went wrong. Please try again.');
@@ -81,7 +88,7 @@ export default function OnboardPage() {
     }
   };
 
-  if (status === 'loading' || status === 'unauthenticated') {
+  if (authLoading || !user) {
     return (
       <div className="screen-shell" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="typing-dot" />

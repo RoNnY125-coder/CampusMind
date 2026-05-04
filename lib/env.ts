@@ -14,9 +14,6 @@ export const env = {
   get GROQ_API_KEY() {
     return requireServerEnv("GROQ_API_KEY");
   },
-  get MEM0_API_KEY() {
-    return requireServerEnv("MEM0_API_KEY");
-  },
   get SUPABASE_SERVICE_ROLE_KEY() {
     return requireServerEnv("SUPABASE_SERVICE_ROLE_KEY");
   },

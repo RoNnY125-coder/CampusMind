@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Brain, CalendarClock, Database, Lock, LogIn, Moon, Sparkles, Zap } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useSupabaseAuth } from "@/components/SupabaseAuthProvider";
 import { supabase } from "@/lib/supabase";
 
 const features = [
@@ -17,23 +17,23 @@ const features = [
 
 export default function LandingPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { user, loading: authLoading } = useSupabaseAuth();
   const [isCheckingUser, setIsCheckingUser] = useState(false);
   const [introStarted, setIntroStarted] = useState(false);
 
   const handleGetStarted = async () => {
-    if (status === "unauthenticated") {
+    if (!authLoading && !user) {
       router.push("/login");
       return;
     }
 
-    if (status === "authenticated" && session?.user) {
+    if (user) {
       setIsCheckingUser(true);
       try {
         const { data } = await supabase
           .from("students")
           .select("has_onboarded")
-          .eq("id", (session.user as any).id)
+          .eq("id", user.id)
           .single();
 
         router.push(data?.has_onboarded ? "/chat" : "/onboard");
@@ -45,7 +45,7 @@ export default function LandingPage() {
     }
   };
 
-  const isBusy = status === "loading" || isCheckingUser;
+  const isBusy = authLoading || isCheckingUser;
   const introDelay = introStarted ? 0.92 : 0;
 
   return (

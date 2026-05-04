@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSupabaseAuth } from "@/components/SupabaseAuthProvider";
 import MemorySidebar from "@/components/MemorySidebar";
 import ChatWindow from "@/components/ChatWindow";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function ChatPage() {
-  const { data: session, status } = useSession();
+  const { user, loading: authLoading } = useSupabaseAuth();
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -17,9 +17,10 @@ export default function ChatPage() {
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
 
   useEffect(() => {
-    if (status === "unauthenticated") { router.push("/login"); return; }
-    if (status === "authenticated" && session?.user) setUserId((session.user as any).id);
-  }, [status, session, router]);
+    if (authLoading) return;
+    if (!user) { router.push("/login"); return; }
+    setUserId(user.id);
+  }, [authLoading, user, router]);
 
   useEffect(() => {
     if (!userId) return;
@@ -34,7 +35,7 @@ export default function ChatPage() {
     setSidebarRefreshKey(prev => prev + 1);
   };
 
-  if (status === "loading" || !userId) {
+  if (authLoading || !userId) {
     return (
       <div className="screen-shell" style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
