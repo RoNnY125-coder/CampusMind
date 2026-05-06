@@ -67,6 +67,7 @@ export default function LoginPage() {
       });
       if (oauthErr) throw oauthErr;
     } catch (err) {
+      console.error("[login] Google sign-in failed:", getOAuthErrorMessage(err));
       clearOAuthRedirectPath();
       setError(getOAuthErrorMessage(err));
     } finally {

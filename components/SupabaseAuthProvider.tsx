@@ -30,7 +30,6 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   const refreshSession = useCallback(async () => {
-    console.log("[auth] refreshSession start");
     const { data, error } = await supabase.auth.getSession();
     if (error) {
       console.error("[auth] getSession error:", error.message);
@@ -38,7 +37,6 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       return null;
     }
-    console.log("[auth] refreshSession result:", data.session?.user?.id ?? "no-session");
     setSession(data.session);
     setUser(data.session?.user ?? null);
     return data.session;
@@ -49,7 +47,6 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
 
     const settleAuth = (source: string, nextSession: Session | null) => {
       if (!mounted) return;
-      console.log("[auth] settle:", source, nextSession?.user?.id ?? "no-session");
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       setLoading(false);
@@ -60,11 +57,6 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         const { data, error } = await supabase.auth.getSession();
         if (error) {
           console.error(`[auth] initial getSession attempt ${attempt}:`, error.message);
-        } else {
-          console.log(
-            `[auth] initial getSession attempt ${attempt}:`,
-            data.session?.user?.id ?? "no-session"
-          );
         }
 
         if (data.session) {
@@ -83,7 +75,6 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
       (event: AuthChangeEvent, nextSession: Session | null) => {
-        console.log("[auth] onAuthStateChange:", event, nextSession?.user?.id ?? "no-session");
         settleAuth(`auth-event-${event}`, nextSession);
       }
     );

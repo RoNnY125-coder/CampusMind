@@ -6,6 +6,7 @@ import { useSupabaseAuth } from '@/components/SupabaseAuthProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CAMPUS_CLUBS } from '@/lib/data/clubs';
 import { supabase } from '@/lib/supabase';
+import { saveProfile } from '@/lib/user-profile-storage';
 
 export default function OnboardPage() {
   const router = useRouter();
@@ -72,7 +73,7 @@ export default function OnboardPage() {
         year: formData.year,
         clubs: formData.clubs.join(', '),
       };
-      localStorage.setItem("campusmind_user", JSON.stringify(userProfile));
+      saveProfile(userProfile);
 
       // Update has_onboarded in the students table
       await supabase
@@ -80,7 +81,8 @@ export default function OnboardPage() {
         .update({ has_onboarded: true })
         .eq('id', userId);
 
-      window.location.href = '/chat';
+      router.push('/chat');
+      router.refresh();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Something went wrong. Please try again.');
     } finally {

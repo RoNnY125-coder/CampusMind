@@ -26,7 +26,12 @@ export async function getStudentProfile(userId: string): Promise<StudentProfile 
       .eq("id", userId)
       .single();
 
-    if (error || !data) return null;
+    if (error) {
+      console.error("[student-profile] failed to load profile:", error.message);
+      return null;
+    }
+
+    if (!data) return null;
 
     return {
       name:         data.name,
@@ -38,7 +43,8 @@ export async function getStudentProfile(userId: string): Promise<StudentProfile 
       clubs:        Array.isArray(data.clubs)     ? data.clubs     : [],
       hasOnboarded: data.has_onboarded,
     };
-  } catch {
+  } catch (error) {
+    console.error("[student-profile] unexpected profile error:", error);
     return null;
   }
 }

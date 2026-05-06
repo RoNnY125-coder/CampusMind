@@ -2,7 +2,19 @@
 import { createClient } from "@supabase/supabase-js";
 import Groq from "groq-sdk";
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
+let groqClient: Groq | null = null;
+
+function getGroqClient() {
+  if (!process.env.GROQ_API_KEY) {
+    throw new Error("GROQ_API_KEY is not configured");
+  }
+
+  if (!groqClient) {
+    groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  }
+
+  return groqClient;
+}
 
 function supabaseAdmin() {
   return createClient(
@@ -25,7 +37,7 @@ export interface RelevantClub {
  * Embed a user query using Groq nomic-embed-text-v1-5
  */
 async function embedQuery(query: string): Promise<number[]> {
-  const response = await groq.embeddings.create({
+  const response = await getGroqClient().embeddings.create({
     model: "nomic-embed-text-v1-5",
     input: query,
   });

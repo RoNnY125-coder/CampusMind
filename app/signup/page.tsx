@@ -85,6 +85,7 @@ export default function SignupPage() {
       });
       if (oauthErr) throw oauthErr;
     } catch (err) {
+      console.error("[signup] Google sign-in failed:", getOAuthErrorMessage(err));
       clearOAuthRedirectPath();
       setError(getOAuthErrorMessage(err));
     } finally {

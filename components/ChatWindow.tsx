@@ -1,10 +1,17 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, SendHorizonal, LogOut, Trash2, Menu, Moon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { CLUBS } from "@/lib/clubs";
+import {
+  clearProfile,
+  getFirstName,
+  loadProfile,
+  type StoredUserProfile,
+} from "@/lib/user-profile-storage";
 
 interface Message { role: "user" | "assistant"; content: string; }
 
@@ -18,6 +25,7 @@ interface ChatWindowProps {
 }
 
 export default function ChatWindow({ userId, studentName, onToggleSidebar, sessionId: externalSessionId, onSessionCreated, onChatCleared }: ChatWindowProps) {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -26,17 +34,17 @@ export default function ChatWindow({ userId, studentName, onToggleSidebar, sessi
   const createdSessionIdRef = useRef<string | null>(null);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<StoredUserProfile | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    try { const stored = localStorage.getItem("campusmind_user"); if (stored) setUserProfile(JSON.parse(stored)); } catch {}
+    setUserProfile(loadProfile());
   }, []);
 
   const getGreeting = () => {
     if (!userProfile) return "Welcome to CampusMind! How can I help you today?";
-    const name = userProfile.name.split(" ")[0];
+    const name = getFirstName(userProfile);
     const clubs = userProfile.clubs;
     if (clubs && clubs.length > 0) return `Hey ${name}! Based on your ${userProfile.branch} background and interest in ${clubs}, I've got some great recommendations for you. What would you like to explore today?`;
     return `Hey ${name}! As a ${userProfile.year} ${userProfile.branch} student, there's a lot you can explore. Tell me what you're interested in!`;
@@ -96,11 +104,16 @@ export default function ChatWindow({ userId, studentName, onToggleSidebar, sessi
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text, userId,
-          history: history.map(m => { try { const p = JSON.parse(m.content); return { role: m.role, content: p.text }; } catch { return m; } }),
+          history: history.slice(-6).map(m => { try { const p = JSON.parse(m.content); return { role: m.role, content: p.text || p.message || m.content }; } catch { return m; } }),
           sessionId: currentSessionId,
+          userProfile,
         }),
       });
-      if (!response.ok) throw new Error("Stream failed");
+      if (!response.ok) {
+        const errText = await response.text().catch(() => "");
+        console.error("[chat-window] chat request failed:", response.status, errText);
+        throw new Error("Stream failed");
+      }
       const newSid = response.headers.get("X-Session-Id");
       if (newSid && !currentSessionId) {
         createdSessionIdRef.current = newSid;
@@ -117,15 +130,21 @@ export default function ChatWindow({ userId, studentName, onToggleSidebar, sessi
         const chunk = decoder.decode(value, { stream: true });
         setMessages(prev => { const u = [...prev]; u[u.length - 1] = { ...u[u.length - 1], content: u[u.length - 1].content + chunk }; return u; });
       }
-    } catch {
+    } catch (error) {
+      console.error("[chat-window] send failed:", error);
       setMessages(prev => { const u = [...prev]; u[u.length - 1] = { role: "assistant", content: JSON.stringify({ text: "Sorry, something went wrong.", recommendations: [] }) }; return u; });
     } finally { setIsLoading(false); }
-  }, [input, isLoading, messages, userId, currentSessionId, onSessionCreated]);
+  }, [input, isLoading, messages, userId, currentSessionId, onSessionCreated, userProfile]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void handleSend(); } };
 
   const handleClearChat = async () => {
-    try { await fetch(`/api/sessions?userId=${encodeURIComponent(userId)}`, { method: 'DELETE' }); } catch {}
+    try {
+      const response = await fetch(`/api/sessions?userId=${encodeURIComponent(userId)}`, { method: 'DELETE' });
+      if (!response.ok) console.error("[chat-window] clear chat failed:", response.status);
+    } catch (error) {
+      console.error("[chat-window] clear chat failed:", error);
+    }
     localStorage.removeItem(`campusmind_chat_${userId}`);
     setCurrentSessionId(null);
     createdSessionIdRef.current = null;
@@ -137,13 +156,20 @@ export default function ChatWindow({ userId, studentName, onToggleSidebar, sessi
 
   const confirmSignOut = async () => {
     localStorage.removeItem(`campusmind_chat_${userId}`);
-    localStorage.removeItem("campusmind_user");
+    clearProfile();
     await supabase.auth.signOut();
-    window.location.href = "/login";
+    router.push("/");
+    router.refresh();
   };
 
   const parseMessage = (content: string) => {
-    try { const p = JSON.parse(content); return { text: p.text || "", recommendations: p.recommendations || [] }; }
+    try {
+      const p = JSON.parse(content);
+      return {
+        text: p.text || p.message || "",
+        recommendations: p.recommendations || p.clubs?.map((club: { name: string }) => club.name) || [],
+      };
+    }
     catch { return { text: content, recommendations: [] }; }
   };
 
@@ -199,6 +225,8 @@ export default function ChatWindow({ userId, studentName, onToggleSidebar, sessi
                       if (club.cat === "Regional") tagColor = "var(--amber)";
                       if (club.cat === "Chapter") tagColor = "var(--red)";
                       if (club.cat === "Community") tagColor = "#818cf8";
+                      if (club.cat === "Sports") tagColor = "var(--orange)";
+                      if (club.cat === "Social Impact") tagColor = "var(--pink)";
                       return (
                         <div key={i} style={{ flex: "1 1 260px", maxWidth: 320, borderRadius: "var(--r-lg)", border: "1px solid var(--border2)", padding: "16px", background: "var(--surface2)" }}>
                           <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700, padding: "2px 8px", borderRadius: "var(--r-pill)", display: "inline-block", marginBottom: 8, background: `color-mix(in srgb, ${tagColor} 15%, transparent)`, color: tagColor }}>{club.cat}</span>

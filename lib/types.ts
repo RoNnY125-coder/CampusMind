@@ -45,6 +45,13 @@ export interface ChatRequest {
   userId: string;
   history: ChatMessage[];
   sessionId?: string;
+  userProfile?: {
+    name: string;
+    college: string;
+    branch: string;
+    year: string;
+    clubs: string;
+  } | null;
 }
 
 export interface MemoryResponse {
