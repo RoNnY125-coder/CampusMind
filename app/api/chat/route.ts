@@ -12,6 +12,7 @@ import {
 import { formatClubContext, getCollegeId, retrieveRelevantClubs } from "@/lib/rag";
 import { getStudentProfile, type StudentProfile } from "@/lib/student-profile";
 import type { ChatRequest } from "@/lib/types";
+import { logger } from "@/lib/logger";
 
 const MODEL = "llama-3.3-70b-versatile";
 const MAX_TOKENS = 1024;
@@ -95,10 +96,88 @@ function toPromptHistory(messages: Awaited<ReturnType<typeof getSessionMessages>
   }));
 }
 
+async function loadProfileAndSession(userId: string, sessionId?: string) {
+  const profilePromise = getStudentProfile(userId);
+  const sessionPromise = getOrCreateSession(userId, sessionId).catch((error) => {
+    logger.error("[chat] session persistence unavailable:", error);
+    return null;
+  });
+
+  const [profile, session] = await Promise.all([profilePromise, sessionPromise]);
+  return { profile, session };
+}
+
+async function saveChatMessage(
+  sessionId: string | null,
+  userId: string,
+  role: "user" | "assistant",
+  content: string
+) {
+  if (!sessionId) return;
+
+  try {
+    await saveMessage(sessionId, userId, role, content);
+  } catch (error) {
+    logger.error("[chat] message persistence unavailable:", error);
+  }
+}
+
+async function loadPromptHistory(
+  sessionId: string | null,
+  fallback: ChatRequest["history"]
+) {
+  if (!sessionId) return toPromptHistory([], fallback);
+
+  try {
+    const messages = await getSessionMessages(sessionId, HISTORY_LIMIT + 1);
+    return toPromptHistory(messages, fallback);
+  } catch (error) {
+    logger.error("[chat] history unavailable:", error);
+    return toPromptHistory([], fallback);
+  }
+}
+
+async function updateTitleIfAvailable(sessionId: string | null, title: string) {
+  if (!sessionId) return;
+
+  try {
+    await updateSessionTitle(sessionId, title);
+  } catch (error) {
+    logger.error("[chat] session title update failed:", error);
+  }
+}
+
+async function resolveCollegeId(profile: StudentProfile | null) {
+  if (profile?.collegeId) return profile.collegeId;
+
+  try {
+    return await getOrFetchCollegeId();
+  } catch (error) {
+    logger.error("[chat] college lookup unavailable:", error);
+    return null;
+  }
+}
+
+async function buildClubContext(message: string, collegeId: string | null) {
+  if (!collegeId) {
+    return "No club data available. Ask the student what they want to explore next.";
+  }
+
+  try {
+    const clubs = await retrieveRelevantClubs(message, collegeId, 5);
+    return formatClubContext(clubs);
+  } catch (error) {
+    logger.error("[chat] club retrieval unavailable:", error);
+    return "Club search is temporarily unavailable. Answer generally and ask a clarifying question.";
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { message, userId, history = [], sessionId, userProfile } =
       (await request.json()) as ChatRequest;
+
+    logger.debug("[chat] incoming request:", { userId, sessionId, messageLength: message?.length });
 
     if (!message || !userId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -106,34 +185,36 @@ export async function POST(request: Request) {
 
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      console.error("[chat] GROQ_API_KEY is not configured.");
+      logger.error("[chat] GROQ_API_KEY is not configured.");
       return NextResponse.json({ error: "GROQ_API_KEY not configured" }, { status: 503 });
     }
 
     const groq = new Groq({ apiKey });
-    const [storedProfile, session] = await Promise.all([
-      getStudentProfile(userId),
-      getOrCreateSession(userId, sessionId),
-    ]);
+    const { profile: storedProfile, session } = await loadProfileAndSession(userId, sessionId);
     const profile = storedProfile ?? normalizeClientProfile(userProfile);
-    const collegeId = profile?.collegeId ?? (await getOrFetchCollegeId());
+    const collegeId = await resolveCollegeId(profile);
+    const activeSessionId = session?.id ?? null;
+
+    logger.debug("[chat] profile resolved:", { 
+      hasStoredProfile: !!storedProfile, 
+      collegeId, 
+      activeSessionId 
+    });
 
     if (!sessionId) {
       const title = message.length > 50 ? `${message.slice(0, 50)}...` : message;
-      await updateSessionTitle(session.id, title);
+      await updateTitleIfAvailable(activeSessionId, title);
     }
 
-    await saveMessage(session.id, userId, "user", message);
-
-    let clubContext = "No club data available. Ask the student what they want to explore next.";
-    if (collegeId) {
-      const clubs = await retrieveRelevantClubs(message, collegeId, 5);
-      clubContext = formatClubContext(clubs);
-    }
-
-    const dbHistory = await getSessionMessages(session.id, HISTORY_LIMIT + 1);
-    const promptHistory = toPromptHistory(dbHistory, history);
+    await saveChatMessage(activeSessionId, userId, "user", message);
+    const clubContext = await buildClubContext(message, collegeId);
+    const promptHistory = await loadPromptHistory(activeSessionId, history);
     const systemPrompt = buildSystemPrompt(profile, clubContext);
+
+    logger.debug("[chat] prompt context built", { 
+      historyLength: promptHistory.length,
+      clubContextLength: clubContext.length 
+    });
 
     const chatCompletion = await groq.chat.completions.create({
       model: MODEL,
@@ -160,11 +241,11 @@ export async function POST(request: Request) {
             controller.enqueue(new TextEncoder().encode(text));
           }
         } catch (error) {
-          console.error("[chat] stream error:", error);
+          logger.error("[chat] stream error:", error);
         } finally {
           controller.close();
           if (fullResponse.trim()) {
-            await saveMessage(session.id, userId, "assistant", fullResponse);
+            await saveChatMessage(activeSessionId, userId, "assistant", fullResponse);
           }
         }
       },
@@ -174,14 +255,15 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-cache",
-        "X-Session-Id": session.id,
+        ...(activeSessionId ? { "X-Session-Id": activeSessionId } : {}),
       },
     });
   } catch (error) {
-    console.error("[chat] route error:", error);
+    logger.error("[chat] route error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 }
     );
   }
 }
+

@@ -105,7 +105,28 @@ export const CLUBS = [
   { name:"Google Developer Student Club (GDSC)", cat:"Community", desc:"Google technologies and developer ecosystem — workshops, hackathons, certifications, and networking.", contact:"gdsc@vitbhopal.ac.in", tags:["google","developer","gdsc","android","cloud","ml","community"] },
   { name:"Mozilla Firefox Club", cat:"Community", desc:"Open-source software, internet freedom, and Firefox advocacy — webinars and Mozilla project sessions.", contact:"Dr. Balaji A. | balaji.a@vitbhopal.ac.in", tags:["open source","mozilla","firefox","internet","web","browser","community"] },
   { name:"Cisco Community", cat:"Community", desc:"Networking, technical and professional skills via Cisco partnership.", contact:"Dr. Kannaiya Raja N | kannaiyaraja@vitbhopal.ac.in", tags:["networking","cisco","network engineering","professional","ccna","infrastructure"] },
+
+  // ── SPORTS ──────────────────────────────────────────────────────────────
+  { name:"Cricket Club", cat:"Sports", desc:"Inter-college cricket tournaments, nets practice, and coaching camps — both men's and women's teams.", contact:"Sports Office | sports@vitbhopal.ac.in", tags:["cricket","sports","outdoor","team","tournament","bat","ball"] },
+  { name:"Football Club", cat:"Sports", desc:"Football training, inter-college leagues, and FIFA e-sports nights — grassroots to competitive level.", contact:"Sports Office | sports@vitbhopal.ac.in", tags:["football","soccer","sports","outdoor","team","tournament"] },
+  { name:"Basketball Club", cat:"Sports", desc:"Basketball practice sessions, 3-on-3 tournaments, and inter-college championship representation.", contact:"Sports Office | sports@vitbhopal.ac.in", tags:["basketball","sports","indoor","team","tournament","court"] },
+  { name:"Badminton Club", cat:"Sports", desc:"Badminton training and tournaments — indoor courts available for singles and doubles play.", contact:"Sports Office | sports@vitbhopal.ac.in", tags:["badminton","sports","indoor","racket","tournament","shuttle"] },
+  { name:"Table Tennis Club", cat:"Sports", desc:"Table tennis practice, intra-college leagues, and state-level tournament preparation.", contact:"Sports Office | sports@vitbhopal.ac.in", tags:["table tennis","tt","ping pong","sports","indoor","racket"] },
+  { name:"Chess Club", cat:"Sports", desc:"Chess tournaments, strategy workshops, and online chess competitions — open to all skill levels.", contact:"Sports Office | sports@vitbhopal.ac.in", tags:["chess","strategy","board game","sports","tournament","indoor","mind"] },
+  { name:"Volleyball Club", cat:"Sports", desc:"Volleyball practice, beach volleyball events, and inter-college tournament participation.", contact:"Sports Office | sports@vitbhopal.ac.in", tags:["volleyball","sports","outdoor","team","tournament","net"] },
+  { name:"Athletics Club", cat:"Sports", desc:"Track and field training — sprints, long-distance, relay, and athletics meets.", contact:"Sports Office | sports@vitbhopal.ac.in", tags:["athletics","track","field","running","sprint","sports","marathon"] },
+  { name:"Yoga & Fitness Club", cat:"Sports", desc:"Daily yoga sessions, fitness workshops, strength training guidance, and wellness awareness.", contact:"Sports Office | sports@vitbhopal.ac.in", tags:["yoga","fitness","gym","health","wellness","meditation","exercise"] },
+  { name:"Kabaddi Club", cat:"Sports", desc:"Kabaddi training and inter-college matches — traditional Indian sport with competitive teams.", contact:"Sports Office | sports@vitbhopal.ac.in", tags:["kabaddi","sports","outdoor","team","tournament","traditional","indian"] },
+  { name:"E-Sports Club", cat:"Sports", desc:"Competitive gaming — Valorant, BGMI, CS2, and League of Legends — regular tournaments and LAN events.", contact:"Contact via DSW office", tags:["esports","gaming","valorant","bgmi","csgo","competitive","online","tournament"] },
+
+  // ── SOCIAL IMPACT ──────────────────────────────────────────────────────
+  { name:"NSS (National Service Scheme)", cat:"Social Impact", desc:"Community service, rural outreach, and social development projects — blood donation drives, cleanliness campaigns, and village adoption programs.", contact:"Dr. Ashok Kumar | nss@vitbhopal.ac.in", tags:["nss","community service","social","outreach","volunteer","rural","charity"] },
+  { name:"Unnat Bharat Abhiyan", cat:"Social Impact", desc:"Rural development and community upliftment — connecting students with villages for sustainable development projects.", contact:"Contact via DSW office", tags:["rural","development","community","social","village","sustainability","outreach"] },
+  { name:"Rotaract Club", cat:"Social Impact", desc:"Service above self — community service projects, professional development, and leadership training affiliated with Rotary International.", contact:"Contact via DSW office", tags:["rotaract","rotary","community service","leadership","social","volunteer","charity"] },
+  { name:"Women Empowerment Cell", cat:"Social Impact", desc:"Gender equality, women's safety, and empowerment initiatives — workshops, awareness campaigns, and mentorship programs.", contact:"Contact via DSW office", tags:["women","empowerment","gender","equality","safety","mentorship","awareness"] },
 ];
+
+export const CLUB_NAMES = CLUBS.map(c => c.name);
 
 export const CAT_COLOR_CLASS: Record<string, string> = {
   "Technical":     "cat-tech",
@@ -113,4 +134,6 @@ export const CAT_COLOR_CLASS: Record<string, string> = {
   "Regional":      "cat-regional",
   "Chapter":       "cat-chapter",
   "Community":     "cat-community",
+  "Sports":        "cat-sports",
+  "Social Impact": "cat-social",
 };

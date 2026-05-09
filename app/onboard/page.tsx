@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '@/components/SupabaseAuthProvider';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CAMPUS_CLUBS } from '@/lib/data/clubs';
+import { CLUB_NAMES } from '@/lib/clubs';
 import { supabase } from '@/lib/supabase';
 import { saveProfile } from '@/lib/user-profile-storage';
 
@@ -187,7 +187,7 @@ export default function OnboardPage() {
               <h2 style={{ color: 'var(--text)', fontSize: '20px', marginBottom: '8px', fontWeight: 600, fontFamily: 'var(--font-display)' }}>Clubs of Interest</h2>
               <p className="form-subtitle">Select clubs you are part of or interested in.</p>
               <div style={{ marginTop: '24px', display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
-                {CAMPUS_CLUBS.map((club) => {
+                {CLUB_NAMES.map((club) => {
                   const isSelected = formData.clubs.includes(club);
                   return (
                     <button key={club} type="button" onClick={() => toggleClub(club)} style={{
