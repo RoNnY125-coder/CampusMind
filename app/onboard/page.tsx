@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '@/components/SupabaseAuthProvider';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CLUB_NAMES } from '@/lib/clubs';
 import { CLUB_NAMES, CLUBS } from '@/lib/clubs';
 import { supabase } from '@/lib/supabase';
 import { saveProfile } from '@/lib/user-profile-storage';
