@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '@/components/SupabaseAuthProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CLUB_NAMES } from '@/lib/clubs';
+import { CLUB_NAMES, CLUBS } from '@/lib/clubs';
 import { supabase } from '@/lib/supabase';
 import { saveProfile } from '@/lib/user-profile-storage';
 
@@ -16,6 +17,7 @@ export default function OnboardPage() {
   const [submittedOnce, setSubmittedOnce] = useState(false);
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
+  const [clubSearch, setClubSearch] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -184,24 +186,63 @@ export default function OnboardPage() {
 
           {step === 4 && (
             <motion.div key="step4" custom={direction} variants={slideVariants} initial="initial" animate="animate" exit="exit" transition={{ type: 'spring', stiffness: 300, damping: 30 }}>
-              <h2 style={{ color: 'var(--text)', fontSize: '20px', marginBottom: '8px', fontWeight: 600, fontFamily: 'var(--font-display)' }}>Clubs of Interest</h2>
-              <p className="form-subtitle">Select clubs you are part of or interested in.</p>
-              <div style={{ marginTop: '24px', display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
-                {CLUB_NAMES.map((club) => {
-                  const isSelected = formData.clubs.includes(club);
-                  return (
-                    <button key={club} type="button" onClick={() => toggleClub(club)} style={{
-                      padding: '8px 18px', borderRadius: 'var(--r-pill)', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s ease', fontFamily: 'var(--font-body)',
-                      border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
-                      background: isSelected ? 'rgba(212,212,212,0.15)' : 'var(--surface2)',
-                      color: isSelected ? 'var(--accent2)' : 'var(--text2)',
-                      boxShadow: isSelected ? '0 0 12px rgba(212,212,212,0.2)' : 'none',
-                    }}
-                    onMouseEnter={(e) => { if (!isSelected) { e.currentTarget.style.background = 'var(--pearl-dim)'; e.currentTarget.style.borderColor = 'rgba(240,238,248,0.2)'; e.currentTarget.style.color = 'var(--pearl)'; }}}
-                    onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.background = 'var(--surface2)'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text2)'; }}}
-                    >{club}</button>
-                  );
-                })}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-white text-xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>Clubs and communities 🚀</h3>
+                  <span className="text-blue-400 text-xs">{formData.clubs.length} selected</span>
+                </div>
+
+                {/* Search bar — NEW */}
+                <div className="relative" style={{ marginTop: '16px' }}>
+                  <input
+                    type="text"
+                    placeholder="Search clubs..."
+                    value={clubSearch}
+                    onChange={e => setClubSearch(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm placeholder-gray-500 outline-none focus:border-blue-500/60 pr-10 transition-all"
+                  />
+                  {clubSearch && (
+                    <button
+                      onClick={() => setClubSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Filtered clubs grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1" style={{ marginTop: '16px' }}>
+                  {CLUBS
+                    .filter(club =>
+                      club.name.toLowerCase().includes(clubSearch.toLowerCase()) ||
+                      club.desc.toLowerCase().includes(clubSearch.toLowerCase())
+                    )
+                    .map(club => (
+                      <button
+                        key={club.name}
+                        onClick={() => toggleClub(club.name)}
+                        className="rounded-xl border p-4 text-left transition-all hover:scale-[1.02]"
+                        style={{
+                          background:  formData.clubs.includes(club.name) ? 'rgba(59,130,246,0.2)'  : 'rgba(255,255,255,0.03)',
+                          borderColor: formData.clubs.includes(club.name) ? 'rgba(59,130,246,0.6)'  : 'rgba(255,255,255,0.1)',
+                          boxShadow:   formData.clubs.includes(club.name) ? '0 0 16px rgba(59,130,246,0.15)' : 'none',
+                        }}
+                      >
+                        <p className="font-medium text-sm text-white">{club.name}</p>
+                        <p className="text-gray-400 text-xs mt-1 leading-relaxed">{club.desc}</p>
+                      </button>
+                    ))
+                  }
+                  {CLUBS.filter(club =>
+                    club.name.toLowerCase().includes(clubSearch.toLowerCase()) ||
+                    club.desc.toLowerCase().includes(clubSearch.toLowerCase())
+                  ).length === 0 && (
+                    <p className="text-gray-500 text-sm col-span-2 text-center py-4">
+                      No clubs found for "{clubSearch}"
+                    </p>
+                  )}
+                </div>
               </div>
             </motion.div>
           )}
