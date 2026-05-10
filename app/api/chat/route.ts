@@ -39,10 +39,6 @@ function normalizeClientProfile(profile: ChatRequest["userProfile"]): StudentPro
   };
 }
 
-function firstName(name: string) {
-  return name.trim().split(/\s+/)[0] || "there";
-}
-
 
 function toPromptHistory(messages: Awaited<ReturnType<typeof getSessionMessages>>, fallback: ChatRequest["history"]) {
   if (messages.length > 0) {
@@ -266,7 +262,7 @@ RESPONSE FORMAT:
     });
 
     const chatCompletion = await groq.chat.completions.create({
-      model: MODEL,
+      model: 'llama-3.3-70b-versatile',
       messages: [
         { role: "system", content: systemPrompt },
         ...promptHistory,
