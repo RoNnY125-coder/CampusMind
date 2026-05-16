@@ -2,93 +2,91 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSupabaseAuth } from "@/components/SupabaseAuthProvider";
+import { createClient } from '@supabase/supabase-js';
 import MemorySidebar from "@/components/MemorySidebar";
 import ChatWindow from "@/components/ChatWindow";
-import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function ChatPage() {
-  const { user, loading: authLoading } = useSupabaseAuth();
-  const router = useRouter();
-  const [userId, setUserId] = useState<string | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [studentName, setStudentName] = useState<string | null>(null);
-  const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
+    const router = useRouter();
+    const [userId, setUserId] = useState<string | null>(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) { router.push("/login"); return; }
-    setUserId(user.id);
-  }, [authLoading, user, router]);
+    useEffect(() => {
+        const checkAuth = async () => {
+            const supabase = createClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            );
 
-  useEffect(() => {
-    if (!userId) return;
-    fetch(`/api/student-profile?userId=${userId}`)
-      .then(res => res.json())
-      .then(data => { if (data?.name) setStudentName(data.name); })
-      .catch(() => {});
-  }, [userId]);
+            const { data: { user } } = await supabase.auth.getUser();
 
-  const handleChatCleared = () => {
-    setActiveSessionId(null);
-    setSidebarRefreshKey(prev => prev + 1);
-  };
+            if (!user) {
+                router.push('/login');
+                return;
+            }
 
-  if (authLoading || !userId) {
+            // Check has_onboarded
+            const { data: student } = await supabase
+                .from('students')
+                .select('has_onboarded')
+                .eq('id', user.id)
+                .single();
+
+            if (!student?.has_onboarded) {
+                router.push('/onboard');
+                return;
+            }
+
+            setUserId(user.id);
+
+            // Seed campus knowledge (idempotent)
+            fetch("/api/seed", { method: "POST" }).catch(console.error);
+        };
+
+        checkAuth();
+    }, [router]);
+
+    if (!userId) {
+        return (
+            <div className="h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 text-white">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
+                    <p>Loading CampusMind...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-      <div className="screen-shell" style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
-          <div style={{ width: 48, height: 48, border: "4px solid rgba(212,212,212,0.25)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
-          <p style={{ fontFamily: "var(--font-body)", color: "var(--text2)" }}>Loading CampusMind...</p>
+        <div className="flex h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 overflow-hidden relative">
+            <aside
+                className={`absolute md:relative z-20 w-80 h-full bg-slate-950/95 md:bg-transparent backdrop-blur-md transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} shrink-0 border-r border-purple-500/20 shadow-xl md:shadow-none`}
+            >
+                <MemorySidebar
+                    userId={userId}
+                    onSessionSelect={(sessionId) => {
+                        setActiveSessionId(sessionId);
+                        setIsSidebarOpen(false);
+                    }}
+                />
+            </aside>
+
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/60 z-10 md:hidden backdrop-blur-sm"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
+            <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+                <ChatWindow
+                    userId={userId}
+                    onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+                    sessionId={activeSessionId}
+                    onSessionCreated={(id) => setActiveSessionId(id)}
+                />
+            </main>
         </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
     );
-  }
-
-  return (
-    <ErrorBoundary>
-      <div className="screen-shell" style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-        {/* Sidebar */}
-        <aside style={{
-          position: isSidebarOpen ? "absolute" : undefined,
-          zIndex: 20,
-          width: "320px",
-          height: "100%",
-          flexShrink: 0,
-          transform: isSidebarOpen ? "translateX(0)" : undefined,
-          transition: "transform 0.3s ease",
-          boxShadow: isSidebarOpen ? "8px 0 40px rgba(0,0,0,0.5)" : "none",
-        }}
-        className={`${isSidebarOpen ? "" : "hidden md:block"}`}
-        >
-          <MemorySidebar
-            userId={userId}
-            refreshKey={sidebarRefreshKey}
-            onSessionSelect={(sessionId) => { setActiveSessionId(sessionId); setIsSidebarOpen(false); }}
-          />
-        </aside>
-
-        {/* Mobile overlay */}
-        {isSidebarOpen && (
-          <div onClick={() => setIsSidebarOpen(false)} style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 10, backdropFilter: "blur(4px)",
-          }} className="md:hidden" />
-        )}
-
-        {/* Main */}
-        <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100%", overflow: "hidden" }}>
-          <ChatWindow
-            userId={userId}
-            studentName={studentName}
-            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-            sessionId={activeSessionId}
-            onSessionCreated={sessionId => setActiveSessionId(sessionId)}
-            onChatCleared={handleChatCleared}
-          />
-        </main>
-      </div>
-    </ErrorBoundary>
-  );
 }

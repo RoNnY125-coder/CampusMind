@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSupabaseAuth } from '@/components/SupabaseAuthProvider';
+import { createClient } from '@supabase/supabase-js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CLUB_NAMES, CLUBS } from '@/lib/clubs';
-import { supabase } from '@/lib/supabase';
 import { saveProfile } from '@/lib/user-profile-storage';
 
 export default function OnboardPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useSupabaseAuth();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [submittedOnce, setSubmittedOnce] = useState(false);
@@ -27,25 +27,51 @@ export default function OnboardPage() {
   });
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    
-    const checkOnboardStatus = async () => {
+    const checkAuth = async () => {
+      setAuthLoading(true);
+      const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+          router.push('/login');
+          return;
+      }
+
+      setUserId(user.id);
+
+      // Check if already onboarded — skip to chat if so
       try {
-        const { data } = await supabase.from('students').select('has_onboarded').eq('id', user.id).single();
-        if (data?.has_onboarded) {
-          router.push('/chat');
-        }
-      } catch (err) {
-        console.error('Failed to check onboard status', err);
+          const { data: student } = await supabase
+              .from('students')
+              .select('has_onboarded, name')
+              .eq('id', user.id)
+              .single();
+
+          if (student?.has_onboarded) {
+              router.push('/chat');
+              return;
+          }
+
+          // Pre-fill name from Google profile if available
+          if (user.user_metadata?.full_name || user.user_metadata?.name) {
+              setFormData(prev => ({
+                  ...prev,
+                  name: prev.name || student?.name || user.user_metadata?.full_name || user.user_metadata?.name || '',
+              }));
+          }
+      } catch (e) {
+          console.error('[onboard] profile check error:', e);
+      } finally {
+          setAuthLoading(false);
       }
     };
-    
-    checkOnboardStatus();
-  }, [authLoading, user, router]);
+
+    checkAuth();
+  }, [router]);
 
   const toggleClub = (club: string) => {
     setFormData(prev => ({
@@ -74,7 +100,6 @@ export default function OnboardPage() {
     setIsSubmitting(true);
     setError('');
     try {
-      const userId = user?.id;
       if (!userId) { router.push('/login'); return; }
       const res = await fetch('/api/onboard', {
         method: 'POST',
@@ -92,8 +117,8 @@ export default function OnboardPage() {
       };
       saveProfile(userProfile);
 
-      router.push('/chat');
-      router.refresh();
+      // Hard redirect so session state refreshes fully
+      window.location.href = '/chat';
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Something went wrong. Please try again.');
     } finally {
@@ -101,7 +126,7 @@ export default function OnboardPage() {
     }
   };
 
-  if (authLoading || !user) {
+  if (authLoading || !userId) {
     return (
       <div className="screen-shell" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="typing-dot" />
