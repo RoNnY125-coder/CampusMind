@@ -131,23 +131,26 @@ GOOD: "Coding club's solid if you're into CP. They do weekly contests. What's yo
 
                     // Save assistant response to DB (non-blocking)
                     if (currentSessionId && fullResponse) {
-                        const db = createClient(
-                            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                            process.env.SUPABASE_SERVICE_ROLE_KEY!,
-                            { auth: { persistSession: false } }
-                        );
-                        db.from('chat_messages').insert({
-                            session_id: currentSessionId,
-                            student_id: userId,
-                            role: 'assistant',
-                            content: fullResponse,
-                        }).catch(console.error);
-
-                        // Update session updated_at
-                        db.from('chat_sessions')
-                            .update({ updated_at: new Date().toISOString() })
-                            .eq('id', currentSessionId)
-                            .catch(console.error);
+                        (async () => {
+                            try {
+                                const db2 = createClient(
+                                    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                                    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+                                    { auth: { persistSession: false } }
+                                );
+                                await db2.from('chat_messages').insert({
+                                    session_id: currentSessionId,
+                                    student_id: userId,
+                                    role: 'assistant',
+                                    content: fullResponse,
+                                });
+                                await db2.from('chat_sessions')
+                                    .update({ updated_at: new Date().toISOString() })
+                                    .eq('id', currentSessionId);
+                            } catch (e) {
+                                console.error('[chat] post-stream save error:', e);
+                            }
+                        })();
                     }
                 }
             }
