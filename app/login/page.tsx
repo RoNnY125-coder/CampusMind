@@ -60,16 +60,14 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `https://campus-mind-flame.vercel.app/auth/callback`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
+        redirectTo: 'https://campus-mind-flame.vercel.app/auth/callback',
+        skipBrowserRedirect: false,
       },
     });
+    if (error) console.error('Google login error:', error.message);
   };
 
   return (
