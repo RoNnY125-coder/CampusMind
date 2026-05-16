@@ -51,7 +51,7 @@ export default function OnboardPage() {
               .eq('id', user.id)
               .single();
 
-          if (student?.has_onboarded) {
+          if (student?.has_onboarded === true) {
               router.push('/chat');
               return;
           }

@@ -27,13 +27,24 @@ export default function ChatPage() {
             }
 
             // Check has_onboarded
-            const { data: student } = await supabase
+            const { data: student, error: studentError } = await supabase
                 .from('students')
                 .select('has_onboarded')
                 .eq('id', user.id)
                 .single();
 
-            if (!student?.has_onboarded) {
+            // If no row found OR has_onboarded is false → go to onboard
+            // But if DB query itself errored (not just missing row) → still let them in
+            if (!studentError && student && !student.has_onboarded) {
+                router.push('/onboard');
+                return;
+            }
+
+            // If student row doesn't exist at all, create it and send to onboard
+            if (studentError?.code === 'PGRST116') {
+                // Row not found — create basic row and send to onboard
+                const { createClient: createAdmin } = await import('@supabase/supabase-js');
+                // Can't use service role on client — just redirect to onboard
                 router.push('/onboard');
                 return;
             }
