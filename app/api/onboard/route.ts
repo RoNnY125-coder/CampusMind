@@ -19,8 +19,7 @@ export async function POST(request: Request) {
     if (!isFallbackId) {
       const { error: dbError } = await db
         .from('students')
-        .upsert({
-          id:            userId,
+        .update({
           name,
           year,
           college,
@@ -29,7 +28,8 @@ export async function POST(request: Request) {
           clubs,
           has_onboarded: true,
           updated_at:    new Date().toISOString(),
-        });
+        })
+        .eq('id', userId);
  
       if (dbError) {
         console.error('[onboard] DB error:', dbError);

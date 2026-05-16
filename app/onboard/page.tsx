@@ -92,12 +92,6 @@ export default function OnboardPage() {
       };
       saveProfile(userProfile);
 
-      // Update has_onboarded in the students table
-      await supabase
-        .from('students')
-        .update({ has_onboarded: true })
-        .eq('id', userId);
-
       router.push('/chat');
       router.refresh();
     } catch (submitError) {

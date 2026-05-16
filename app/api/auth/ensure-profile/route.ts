@@ -32,8 +32,13 @@ export async function POST(request: Request) {
     email.split("@")[0] ??
     "Student";
 
-  const { data: existingUser } = await admin.from("students").select("has_onboarded").eq("id", user.id).single();
+  const { data: existingUser, error: queryError } = await admin.from("students").select("has_onboarded").eq("id", user.id).maybeSingle();
   let hasOnboarded = false;
+
+  if (queryError) {
+    console.error("[ensure-profile] query failed:", queryError);
+    return NextResponse.json({ error: "Failed to check existing profile" }, { status: 500 });
+  }
 
   if (existingUser) {
     hasOnboarded = existingUser.has_onboarded;
