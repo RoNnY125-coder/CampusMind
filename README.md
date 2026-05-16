@@ -312,14 +312,26 @@ User sends message
 
 ## ✦ Clubs Supported
 
-```
-Coding Club          Photography Club      Robotics Club
-Entrepreneurship     AI & ML Society       Cybersecurity Club
-Music Club           Drama Society         Literary Club
-Finance Club         Sports Committee      Design Studio
-NSS                  Cultural Committee    Debate Club
-Film Society
-```
+**Technical**
+AIEM Club, AI Club, Android Club, Anime Club, ANTERIX Club, AWS Club, Antique Arcade Club, Bio-Engineering Club, Blockchain Club, BashCraft Club, Cloud Zone, Coding Blocks (Bit By Bit), D2C Igniters Club, Data Science Club, E-Cell, Edu4U, E-Green Club, E-Commerce Club, Electric Vehicle Club, Eureka Club, Feedbox College Club, FYI Club, Freelancing Club, GDG on Campus, Google Innovators Club, Health Informatics Club, iCreate Club, IoT Club, iOS Club, LINPACK Club, Linux Club, Matrix – Multimedia Club, MERN Stack Club, Metaversity, Microsoft Technical Club, Open-Source Club, OWASP Club, PSI Society, Ramanuja Mathematica Club, Robotics Club, SAE India Collegiate Club, Software Development Club, Stats-O-Locked Club, Startup Club, TechnoMech Club, The Finance Club, UX Club, Virtual Reality & Gaming Club, VITronix Club, VIT Bhopal Cyber Warriors
+
+**Non-Technical**
+Biz Whiz Club, Cognitive Fitness Club, Cooking & Feasting Club, Dance Club, Defence Warriors Club, Ekfraseis Dramatics Society, English Literary Club (ELA), Fine Arts Club (Meraki), Fusion Club, Insights Club, MUN Club, Music & Band Club, Nature & Trekking Club, Photography & Movie Making Club, VIT Vista Voices, VITERA, VITKULT
+
+**Regional**
+Andy Haryana Club, Bengali Club, Central India Club, Ganga Bhumi Club, Gujarati Club, Hindi Club, Malayalam Club, Maharo Rajasthan Club, Marathi Club, North East Club, Odia Club, Punjabi Club, Seedhe Pahad Se (Pahadi Club), Tamil Club, Telugu Club
+
+**Chapters**
+VIT Bhopal ACM Chapter, CSI Chapter, GeeksForGeeks VITB Chapter, IEEE Student Chapter, Null Student Chapter, Omdena VIT Bhopal Chapter, SEDS Nebula, SIAM Student Chapter, TEDx VIT Bhopal, Toastmasters International, Material Advantage Chapter, WiCyS
+
+**Communities**
+Google Developer Student Club (GDSC), Mozilla Firefox Club, Cisco Community
+
+**Sports**
+Cricket Club, Football Club, Basketball Club, Badminton Club, Table Tennis Club, Chess Club, Volleyball Club, Athletics Club, Yoga & Fitness Club, Kabaddi Club, E-Sports Club
+
+**Social Impact**
+NSS (National Service Scheme), Unnat Bharat Abhiyan, Rotaract Club, Women Empowerment Cell
 
 ---
 
