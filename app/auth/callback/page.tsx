@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSupabaseAuth } from "@/components/SupabaseAuthProvider";
 import { ensureStudentProfile } from "@/lib/auth-helpers";
@@ -11,21 +11,29 @@ function AuthCallbackContent() {
   const searchParams = useSearchParams();
   const { session } = useSupabaseAuth();
   const [processed, setProcessed] = useState(false);
+  const executionCount = React.useRef(0);
 
   useEffect(() => {
+    executionCount.current += 1;
+    console.log(`AUTH CALLBACK HIT - Execution Count: ${executionCount.current}`);
+    console.log("Callback searchParams:", Object.fromEntries(searchParams.entries()));
+
     const errorParam =
       searchParams.get("error_description") ||
       searchParams.get("error") ||
       searchParams.get("message");
 
     if (errorParam) {
+      console.log("Callback encountered error:", errorParam);
       router.push(`/login?error=${encodeURIComponent(errorParam)}`);
       return;
     }
 
     if (session && !processed) {
+      console.log("Session detected, processing onboard status...");
       setProcessed(true);
       ensureStudentProfile(session.access_token).then((result) => {
+        console.log("Profile ensure result:", result);
         const cookies = document.cookie.split(";").reduce((acc, cookie) => {
           const [name, value] = cookie.split("=").map((c) => c.trim());
           acc[name] = value;
@@ -34,6 +42,7 @@ function AuthCallbackContent() {
 
         const nextPathRaw = cookies[getOAuthRedirectCookieName()];
         const next = normalizeAuthRedirectPath(decodeURIComponent(nextPathRaw || ""));
+        console.log("Redirecting to:", next);
 
         document.cookie = `${getOAuthRedirectCookieName()}=; Path=/; Max-Age=0; SameSite=Lax`;
 
