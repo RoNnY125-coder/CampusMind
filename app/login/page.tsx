@@ -59,24 +59,17 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogle = async () => {
-    setLoading(true);
-    setError("");
-
-    try {
-      persistOAuthRedirectPath("/onboard");
-      const { error: oauthErr } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: getOAuthCallbackUrl() },
-      });
-      if (oauthErr) throw oauthErr;
-    } catch (err) {
-      console.error("[login] Google sign-in failed:", getOAuthErrorMessage(err));
-      clearOAuthRedirectPath();
-      setError(getOAuthErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
+  const handleGoogleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `https://campus-mind-flame.vercel.app/auth/callback`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    });
   };
 
   return (
@@ -108,7 +101,7 @@ export default function LoginPage() {
           </p>
         )}
 
-        <button type="button" onClick={handleGoogle} disabled={loading} className="btn btn-ghost" style={{ width: "100%", marginBottom: 16, padding: 14 }}>
+        <button type="button" onClick={handleGoogleLogin} disabled={loading} className="btn btn-ghost" style={{ width: "100%", marginBottom: 16, padding: 14 }}>
           Continue with Google
         </button>
 
