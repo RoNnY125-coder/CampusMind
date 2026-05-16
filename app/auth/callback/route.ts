@@ -83,19 +83,30 @@ export async function GET(request: Request) {
     (user.user_metadata?.name as string | undefined) ??
     email.split("@")[0] ??
     "Student";
-  const { error: upsertError } = await supabaseServer().from("students").upsert(
-    {
+  const { data: existingUser } = await supabaseServer().from("students").select("has_onboarded").eq("id", user.id).single();
+  let hasOnboarded = false;
+
+  if (existingUser) {
+    hasOnboarded = existingUser.has_onboarded;
+  } else {
+    const { error: insertError } = await supabaseServer().from("students").insert({
       id: user.id,
       email,
       name,
       has_onboarded: false,
-    },
-    { onConflict: "id" }
-  );
+    });
 
-  if (upsertError) {
-    console.error("[auth/callback] students upsert failed:", upsertError.message);
+    if (insertError) {
+      console.error("[auth/callback] students insert failed:", insertError.message);
+    }
   }
 
-  return NextResponse.redirect(new URL(next, origin));
+  let redirectPath = next;
+  if (hasOnboarded && next === "/onboard") {
+    redirectPath = "/chat";
+  } else if (!hasOnboarded && next === "/chat") {
+    redirectPath = "/onboard";
+  }
+
+  return NextResponse.redirect(new URL(redirectPath, origin));
 }

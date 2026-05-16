@@ -32,20 +32,24 @@ export async function POST(request: Request) {
     email.split("@")[0] ??
     "Student";
 
-  const { error: upsertError } = await admin.from("students").upsert(
-    {
+  const { data: existingUser } = await admin.from("students").select("has_onboarded").eq("id", user.id).single();
+  let hasOnboarded = false;
+
+  if (existingUser) {
+    hasOnboarded = existingUser.has_onboarded;
+  } else {
+    const { error: insertError } = await admin.from("students").insert({
       id: user.id,
       email,
       name,
       has_onboarded: false,
-    },
-    { onConflict: "id" }
-  );
+    });
 
-  if (upsertError) {
-    console.error("[ensure-profile] upsert failed:", upsertError);
-    return NextResponse.json({ error: upsertError.message }, { status: 500 });
+    if (insertError) {
+      console.error("[ensure-profile] insert failed:", insertError);
+      return NextResponse.json({ error: insertError.message }, { status: 500 });
+    }
   }
 
-  return NextResponse.json({ ok: true, userId: user.id });
+  return NextResponse.json({ ok: true, userId: user.id, hasOnboarded });
 }

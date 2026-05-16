@@ -58,8 +58,8 @@ export default function SignupPage() {
       }
 
       if (data.session?.access_token) {
-        await ensureStudentProfile(data.session.access_token);
-        router.push("/onboard");
+        const result = await ensureStudentProfile(data.session.access_token);
+        router.push(result.hasOnboarded ? "/chat" : "/onboard");
         router.refresh();
         return;
       }

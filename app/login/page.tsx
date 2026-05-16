@@ -42,11 +42,15 @@ export default function LoginPage() {
         return;
       }
 
+      let nextPath = "/onboard";
       if (data.session?.access_token) {
-        await ensureStudentProfile(data.session.access_token);
+        const result = await ensureStudentProfile(data.session.access_token);
+        if (result.hasOnboarded) {
+          nextPath = "/chat";
+        }
       }
 
-      router.push("/onboard");
+      router.push(nextPath);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");

@@ -28,7 +28,23 @@ export default function OnboardPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) router.push('/login');
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    
+    const checkOnboardStatus = async () => {
+      try {
+        const { data } = await supabase.from('students').select('has_onboarded').eq('id', user.id).single();
+        if (data?.has_onboarded) {
+          router.push('/chat');
+        }
+      } catch (err) {
+        console.error('Failed to check onboard status', err);
+      }
+    };
+    
+    checkOnboardStatus();
   }, [authLoading, user, router]);
 
   const toggleClub = (club: string) => {
