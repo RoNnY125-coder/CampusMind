@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from "@/lib/supabase";
 import MemorySidebar from "@/components/MemorySidebar";
 import ChatWindow from "@/components/ChatWindow";
 
@@ -14,11 +14,6 @@ export default function ChatPage() {
 
     useEffect(() => {
         const checkAuth = async () => {
-            const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-            );
-
             const { data: { user } } = await supabase.auth.getUser();
 
             if (!user) {

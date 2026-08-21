@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CLUB_NAMES, CLUBS } from '@/lib/clubs';
 import { saveProfile } from '@/lib/user-profile-storage';
@@ -29,10 +29,6 @@ export default function OnboardPage() {
   useEffect(() => {
     const checkAuth = async () => {
       setAuthLoading(true);
-      const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
 
       const { data: { user } } = await supabase.auth.getUser();
 
