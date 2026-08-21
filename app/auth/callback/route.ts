@@ -3,12 +3,39 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const url = new URL(request.url);
+  const { searchParams, origin } = url;
+  
   const code = searchParams.get('code');
+  const errorParam = searchParams.get('error');
+  const errorDescription = searchParams.get('error_description');
   const next = searchParams.get('next') ?? '/chat';
 
+  // 1. Handle explicit errors returned from Supabase Auth
+  if (errorParam || errorDescription) {
+    const message = errorDescription || errorParam;
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(message as string)}`);
+  }
+
+  // 2. If no code, maybe it's an implicit flow (hash fragment). 
+  // We can't read hashes on the server, so we return a client-side script to handle it.
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=no_code`);
+    return new NextResponse(`
+      <html>
+        <head><title>Authenticating...</title></head>
+        <body>
+          <script>
+            // If there's a hash with access_token, we can parse it and redirect or set session
+            if (window.location.hash.includes('access_token')) {
+              // Redirect to a client-side page that will process the hash
+              window.location.replace('/auth/implicit-handler' + window.location.hash);
+            } else {
+              window.location.replace('/login?error=no_code_provided');
+            }
+          </script>
+        </body>
+      </html>
+    `, { headers: { 'content-type': 'text/html' } });
   }
 
   const cookieStore = await cookies();
