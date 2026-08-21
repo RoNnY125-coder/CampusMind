@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import Groq from "groq-sdk";
 import { createClient } from '@supabase/supabase-js';
+import { retrieveRelevantClubs, formatClubContext } from '@/lib/rag';
 
 export async function POST(request: Request) {
     try {
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
 
             const { data: student } = await db
                 .from('students')
-                .select('name, year, branch, interests, clubs')
+                .select('name, year, branch, interests, clubs, college_id')
                 .eq('id', userId)
                 .single();
 
@@ -62,6 +63,13 @@ export async function POST(request: Request) {
             console.error('[chat] DB error:', e);
         }
 
+        // Retrieve RAG context if college_id is known
+        let ragContext = "No specific clubs found for this query. Use your general knowledge about the college.";
+        if (studentProfile?.college_id) {
+            const relevantClubs = await retrieveRelevantClubs(message, studentProfile.college_id, 3);
+            ragContext = formatClubContext(relevantClubs);
+        }
+
         // Build sharp system prompt with student context
         const name = studentProfile?.name || 'there';
         const year = studentProfile?.year || 'college';
@@ -76,6 +84,9 @@ STUDENT PROFILE (use naturally, never announce you're using it):
 - Interests: ${interests}
 - Clubs: ${clubs}
 
+RELEVANT CAMPUS DATA (Use this to answer questions about clubs, events, or contacts):
+${ragContext}
+
 HOW TO RESPOND — CRITICAL:
 - Talk like a real person, not a chatbot. Short, direct, genuine.
 - NEVER start with "Hi!", "Hello!", "Sure!", "Great question!", "Absolutely!" — BANNED
@@ -83,7 +94,7 @@ HOW TO RESPOND — CRITICAL:
 - Match their energy — casual question = casual answer
 - Use their name occasionally but not every message
 - For academic help: give the real answer first, details after
-- For club/event questions: speak from experience, be specific
+- For club/event questions: speak from experience, be specific using the RELEVANT CAMPUS DATA provided.
 - Keep replies under 100 words unless they explicitly ask for detail
 - Temperature: warm but efficient — like a helpful senior, not a customer service bot
 - NEVER ask for info you already have (name, branch, year, interests)
