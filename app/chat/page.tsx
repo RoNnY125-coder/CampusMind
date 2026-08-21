@@ -14,18 +14,25 @@ export default function ChatPage() {
 
     useEffect(() => {
         const checkAuth = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-            if (!user) {
-                router.push('/login');
+            if (sessionError || userError) {
+                console.error("Auth error in chat:", sessionError || userError);
+            }
+
+            if (!user && !session?.user) {
+                router.push(`/login?error=${encodeURIComponent(userError?.message || sessionError?.message || 'Session expired or not found')}`);
                 return;
             }
+            
+            const currentUser = user || session!.user;
 
             // Check has_onboarded
             const { data: student, error: studentError } = await supabase
                 .from('students')
                 .select('has_onboarded')
-                .eq('id', user.id)
+                .eq('id', currentUser.id)
                 .single();
 
             // If no row found OR has_onboarded is false → go to onboard
@@ -44,7 +51,7 @@ export default function ChatPage() {
                 return;
             }
 
-            setUserId(user.id);
+            setUserId(currentUser.id);
 
             // Seed campus knowledge (idempotent)
             fetch("/api/seed", { method: "POST" }).catch(console.error);

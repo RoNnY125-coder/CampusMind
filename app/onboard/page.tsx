@@ -30,21 +30,28 @@ export default function OnboardPage() {
     const checkAuth = async () => {
       setAuthLoading(true);
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-      if (!user) {
-          router.push('/login');
-          return;
+      if (sessionError || userError) {
+          console.error("Auth error in onboard:", sessionError || userError);
       }
 
-      setUserId(user.id);
+      if (!user && !session?.user) {
+          router.push(`/login?error=${encodeURIComponent(userError?.message || sessionError?.message || 'Session expired or not found')}`);
+          return;
+      }
+      
+      const currentUser = user || session!.user;
+
+      setUserId(currentUser.id);
 
       // Check if already onboarded — skip to chat if so
       try {
           const { data: student } = await supabase
               .from('students')
               .select('has_onboarded, name')
-              .eq('id', user.id)
+              .eq('id', currentUser.id)
               .single();
 
           if (student?.has_onboarded === true) {
@@ -53,10 +60,10 @@ export default function OnboardPage() {
           }
 
           // Pre-fill name from Google profile if available
-          if (user.user_metadata?.full_name || user.user_metadata?.name) {
+          if (currentUser.user_metadata?.full_name || currentUser.user_metadata?.name) {
               setFormData(prev => ({
                   ...prev,
-                  name: prev.name || student?.name || user.user_metadata?.full_name || user.user_metadata?.name || '',
+                  name: prev.name || student?.name || currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || '',
               }));
           }
       } catch (e) {
