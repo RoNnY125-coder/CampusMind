@@ -75,6 +75,11 @@ alter table clubs enable row level security;
 alter table club_embeddings enable row level security;
 alter table colleges enable row level security;
 
+drop policy if exists "clubs_public_read" on clubs;
 create policy "clubs_public_read" on clubs for select using (is_active = true);
+
+drop policy if exists "embeddings_public_read" on club_embeddings;
 create policy "embeddings_public_read" on club_embeddings for select using (true);
+
+drop policy if exists "colleges_public_read" on colleges;
 create policy "colleges_public_read" on colleges for select using (true);
